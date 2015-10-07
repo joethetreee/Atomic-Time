@@ -4,10 +4,15 @@ Created: 04/10/2015
 Author: Joe Wilson <jw32g12@soton.ac.uk>
 """
 
+t_timeout = 0.5
+t_timePeriod = 10
+t_num = 10
+
 import time
 import serial
 import numpy as np
 import subprocess
+import matplotlib.pyplot as plt
 
 def startClock( ard ):
 	""" Initiates timer on Arduino. 
@@ -20,7 +25,7 @@ def startClock( ard ):
 	# Instruct the Arduino to start measuring and return its start time
 	try:
 		ard.write("0\n".encode("ascii"))
-	except SerialTimeoutException as err:
+	except serial.SerialTimeoutException as err:
 		print(err)
 		return False
 		
@@ -37,7 +42,7 @@ def stopClock( ard ):
 	try:
 		# Tell Arduino to finish
 		ard.write("2\n".encode("ascii"))
-	except SerialTimeoutException as err:
+	except serial.SerialTimeoutException as err:
 		print(err)
 		return False
 		
@@ -46,7 +51,7 @@ def stopClock( ard ):
 		result = ard.readline()
 		if result == "OK":
 			return True
-	except SerialTimeoutException as err:
+	except serial.SerialTimeoutException as err:
 		print(err)
 		
 	return False
@@ -62,18 +67,34 @@ def measureTime( ard ):
 	
 	try:
 		# Tell Arduino to return its current timer value.
-		ard.write("1\n".encode("ascii"))
-	except SerialTimeoutException:
+		ard.write("1".encode("ascii"))
+	except serial.SerialTimeoutException:
 		return False
+
 		
-	try:
-		# Read Arduino's current timer value as string (can conver to float later for speed).
-		result = ard.readline()
-		return result
-	except SerialTimeoutException as err:
-		print(err)
+#	try:
+##		# Read Arduino's current timer value as string (can convert to float later for speed).
+##		result = int(ard.readline().decode("ASCII"))
+##		print (result)
+##		return result
+#
+#		# Read Arduino's current timer value as string (can convert to float later for speed).
+#		result = ard.readline()
+#		
+#		print (result)
+#		return 0
+#
+#	except serial.SerialTimeoutException as err:
+#		print(err)
+
+	result = -1
+	res_raw = ard.readline()
 		
-	return False
+	res_raw1 = str(res_raw.decode("ascii"))
+	res_raw1 = res_raw1[:len(res_raw1)-1]
+	result = int(res_raw1)
+		
+	return result
 	
 	
 def syncTime():
@@ -85,15 +106,12 @@ def syncTime():
 if __name__ == "__main__":
 
 	ard = None
-	
-	N = 10 # Number of measurements
-	T = 60 * 60 # Period between measurements
-	
-	pcTime = np.zeros(N + 1)
-	arduinoTime = np.zeros(N + 1)
+		
+	pcTime = np.zeros(t_num)
+	arduinoTime = np.zeros(t_num)
 	
 	try:
-		ard = serial.Serial('COM3', 9600, timeout = 1)
+		ard = serial.Serial('COM3', 9600, timeout = t_timeout)
 	except serial.SerialException as err:
 		print(err)
 	
@@ -103,25 +121,51 @@ if __name__ == "__main__":
 		# Synchronise PC time for initial measurement.
 		syncTime()
 		# Start Arduino timer.
-		startClock(ard)
+
+		# sleep so that the arduino can initialise (it resets upon serial opening)
+		time.sleep(3)
+
+		#startClock(ard)
+
+		offset = time.time()
 		
-		# Do N measurements every T seconds
-		for i in N:
+		# Do N measurements every t_timePeriod seconds
+		for i in range(t_num):
 			# Synchronise PC time
 			syncTime()
 
 			# Get current synchronised PC time
-			pcTime[i + 1] = time.time()
+			pcTime[i] = int(round(1000*(time.time()-offset)))
 			
 			# Get currrent Arduino time
-			arduinoTime[i + 1] = measureTime(ard)
+			arduinoTime[i] = measureTime(ard)
 			
 			# Wait for next measurement
-			time.sleep(T)
+			time.sleep(t_timePeriod)
 			
 			
 		# End test measurement
-		stopClock(ard)
+		#stopClock(ard)
+		ard.close()
+
+		print(pcTime)
+		print(arduinoTime)
+
+		plt.plot(pcTime, arduinoTime)
+		plt.show()
+		
+		text_file = open("ArduinoDrift_measurements.txt", "w")
+
+		text_file.write("(pc time /ms) (arduino time /ms)")
+		
+		for i in range(t_num):
+			text_file.write("\n")
+			text_file.write(str(int(pcTime[i])))
+			text_file.write(" ")
+			text_file.write(str(int(arduinoTime[i])))
+			
+		
+		text_file.close()
 	
 	
 	
