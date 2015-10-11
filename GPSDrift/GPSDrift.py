@@ -46,7 +46,7 @@ if __name__ == "__main__":
 
 	t_timeout = 2
 	ard = None
-	N = 10 # Number of measurements to take (1Hz GPS gives 1 measurement per second)
+	N = 60 * 30 # Number of measurements to take (1Hz GPS gives 1 measurement per second)
 		
 	arduinoTime = np.zeros(N)
 	
