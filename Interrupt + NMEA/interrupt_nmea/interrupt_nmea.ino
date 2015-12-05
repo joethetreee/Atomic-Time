@@ -2,7 +2,7 @@
 #include <Adafruit_GPS.h>
 #include <SoftwareSerial.h>
 //#include <SD.h>
-#include <SdFat.h>
+#include "SdFat.h"
 
 #include <avr/sleep.h>
 
@@ -34,7 +34,8 @@ int count1 = 0;
 int count2 = 0;
 char nmea1[80];
 char nmea2[80];
-
+bool writeData = false;
+int fill = 1;
 
 // read a Hex value and return the decimal equivalent
 uint8_t parseHex(char c) {
@@ -79,11 +80,11 @@ void setup() {
   // output, even if you don't use it:
   pinMode(10, OUTPUT);
 
-  if (!sd.begin(chipSelect)) {      // if you're using an UNO, you can use this line instead
+  if (!sd.begin(chipSelect, SPI_FULL_SPEED)) {      // if you're using an UNO, you can use this line instead
     error(2);
   }
   char filename[15];
-  strcpy(filename, "GPSLOG00.TXT");
+  strcpy(filename, "GPSMIL00.TXT");
   for (uint8_t i = 0; i < 100; i++) {
     filename[6] = '0' + i/10;
     filename[7] = '0' + i%10;
@@ -110,47 +111,54 @@ void setup() {
 
 void loop() {
   char c = GPS.read();
-  detachInterrupt(digitalPinToInterrupt(2));
-  detachInterrupt(digitalPinToInterrupt(3));
+  if (c) {
+    detachInterrupt(digitalPinToInterrupt(2));
+    detachInterrupt(digitalPinToInterrupt(3));
+  }
   while (c) {
-    if (count2) {
+    if (fill == 1) {
       nmea1[count1] = c;
       count1++;
       if (c == '\n') {
         nmea1[count1] = '\0';
-
+        fill = 2;
       }
-    } else {
+    } else if (fill == 2) {
       nmea2[count2] = c;
       count2++;
       if (c == '\n') {
         nmea2[count2] = '\0';
-        
+        fill = 1;
+        writeData = true;
+        break;
       }
     }
     c = GPS.read();
   }
 
-  // Write to file
-  logfile.print(nmea1);
-  logfile.print(",");
-  logfile.print(milliLast);
-  logfile.print(",");
-  logfile.println(ppsMilliLast);
-  logfile.print(nmea2);
-  logfile.print(",");
-  logfile.print(milliLast);
-  logfile.print(",");
-  logfile.println(ppsMilliLast);
-  logfile << flush;
-  
-  // Reset for next data set
-  nmea1[0] = (char)0;
-  nmea2[0] = (char)0;
-  count1 = 0;
-  count2 = 0;
-  attachInterrupt(digitalPinToInterrupt(3), getInputTime, RISING);
-  attachInterrupt(digitalPinToInterrupt(2), getPPSTime, RISING);
+  if (writeData == true) {
+    // Write to file
+    logfile.print(nmea1);
+//    logfile.print(",");
+//    logfile.print(milliLast);
+//    logfile.print(",");
+//    logfile.println(ppsMilliLast);
+    logfile.print(nmea2);
+    logfile.print(",");
+    logfile.print(milliLast);
+    logfile.print(",");
+    logfile.println(ppsMilliLast);
+    logfile.flush();
+    
+    // Reset for next data set
+    nmea1[0] = (char)0;
+    nmea2[0] = (char)0;
+    count1 = 0;
+    count2 = 0;
+    writeData = false;
+    attachInterrupt(digitalPinToInterrupt(3), getInputTime, RISING);
+    attachInterrupt(digitalPinToInterrupt(2), getPPSTime, RISING);
+  }
 }
 
 void getInputTime() {
@@ -158,7 +166,6 @@ void getInputTime() {
   dt = milli - milliLast;
   if(dt > 200) {
     milliLast = milli;
-    writeNow = 1;
   }
 }
 
@@ -167,11 +174,6 @@ void getPPSTime() {
   ppsDt = ppsMilli - ppsMilliLast;
   if(ppsDt > 200) {
     ppsMilliLast = ppsMilli;
-    if(writeNow) {
-      // We want the PPS time THEN the serial time, not the other way around
-      writeNow = 0;
-    } 
-    ppsWriteNow = 1;
   }
 }
 
