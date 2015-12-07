@@ -9,6 +9,9 @@
 SoftwareSerial gpsSerial(8, 7);
 Adafruit_GPS GPS(&gpsSerial);
 
+//HardwareSerial mySerial = Serial;
+//Adafruit_GPS GPS(&mySerial);
+
 // Set GPSECHO to 'false' to turn off echoing the GPS data to the Serial console
 // Set to 'true' if you want to debug and listen to the raw GPS sentences
 #define GPSECHO  true
@@ -50,26 +53,33 @@ uint8_t parseHex(char c) {
 }
 
 // blink out an error code
-void error(uint8_t errno) {
+void error(uint8_t errno) {           // note: blink code won't work after sd.begin() because SPI disables pin13 LED!!! We must end SPI first
+  SPI.end();
   /*
   if (SD.errorCode()) {
-   putstring("SD error: ");
-   Serial.print(card.errorCode(), HEX);
-   Serial.print(',');
-   Serial.println(card.errorData(), HEX);
-   }
-   */
+    putstring("SD error: ");
+    Serial.print(card.errorCode(), HEX);
+    Serial.print(',');
+    Serial.println(card.errorData(), HEX);
+    }
+  */
   while(1) {
     uint8_t i;
     for (i=0; i<errno; i++) {
-      digitalWrite(ledPin, HIGH);
-      delay(100);
-      digitalWrite(ledPin, LOW);
-      delay(100);
+      Blink(ledPin, 100);
     }
     for (i=errno; i<10; i++) {
       delay(200);
     }
+  }
+}
+
+void Blink(byte pin, int t)
+{
+  for (byte k=0; k<2; k++)
+  {
+    digitalWrite(pin, k);
+    delay(t);
   }
 }
 
@@ -79,6 +89,9 @@ void setup() {
   // make sure that the default chip select pin is set to
   // output, even if you don't use it:
   pinMode(10, OUTPUT);
+
+  SPI.end();
+  Blink(ledPin, 1500);
 
   if (!sd.begin(chipSelect, SPI_FULL_SPEED)) {      // if you're using an UNO, you can use this line instead
     error(2);
@@ -97,6 +110,12 @@ void setup() {
   if (!logfile.open(filename, O_RDWR | O_CREAT | O_AT_END)) {
     error(3);
   }
+  delay(500);
+  logfile.write("begin");
+  logfile.write('\n');
+  logfile.flush();
+  delay(500);
+  
 
   GPS.begin(9600);
   GPS.sendCommand(PMTK_SET_NMEA_OUTPUT_RMCGGA);
@@ -144,7 +163,7 @@ void loop() {
 //    logfile.print(",");
 //    logfile.println(ppsMilliLast);
     logfile.print(nmea2);
-    logfile.print(",");
+    logfile.print("t");
     logfile.print(milliLast);
     logfile.print(",");
     logfile.println(ppsMilliLast);
