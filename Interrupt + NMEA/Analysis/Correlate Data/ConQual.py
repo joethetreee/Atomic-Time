@@ -13,13 +13,13 @@ txxxx,xxxx 	    (serial,pps times)
 
 import numpy as np
 import matplotlib.pyplot as plt
-from colour import Color
 from scipy.stats.stats import pearsonr
-filename = "GPSMIL12ChckdCor"
+filename = "GPSMIL33ChckdCor"
 
 oset_GGA = 0 				# offset of GGA sentence
-oset_PPS = 1 				# offset of PPS sentence
-period = 2	 				# number of lines in each data set
+oset_PPS = 2 				# offset of PPS sentence
+period = 3	 				# number of lines in each data set
+qCommaIndex = 7				# number of commas in GGA line before data
 
 def ColArray(N):
 	colourNum = np.linspace(0, 1, N)
@@ -36,22 +36,22 @@ contents.close()
 print("length: ",len(contentsTxt))
 ser_T = [0]*int(np.ceil(len(contentsTxt)/period))	 	# store serial times
 pps_T = [0]*int(np.ceil(len(contentsTxt)/period))	 	# store pps times
-qArr = [0]*int(np.ceil(len(contentsTxt)/period))	 	 	# store connections quality
+qArr = [0]*int(np.ceil(len(contentsTxt)/period))	 	# store connections quality
 print("~",int(np.ceil(len(contentsTxt)/period)))
 
 # put data into arrays
 for i in range(0,len(contentsTxt),period):
 	# get information from GGA sentence
 	commaLoc = 0
-	for commaNum in range(7): 	 	# find quality value (fix/no fix)
+	for commaNum in range(qCommaIndex): 	 	 	# value of interest
 		commaLoc += contentsTxt[i+oset_GGA][commaLoc:].index(',')+1
 	commaLoc2 = commaLoc + contentsTxt[i+oset_GGA][commaLoc:].index(',')
-	qArr[int(i/period)] = int(contentsTxt[i+oset_GGA][commaLoc:commaLoc2])
+	qArr[int(i/period)] = int(float(contentsTxt[i+oset_GGA][commaLoc:commaLoc2]))
 	
 	
 	# get information from PPS sentence
 	commaLoc = 0
-	for commaNum in range(1): 	 	# find quality value (fix/no fix)
+	for commaNum in range(1): 	 	 	 	 	# find pps value
 		commaLoc += contentsTxt[i+oset_PPS][commaLoc:].index(',')
 	ser_T[int(i/period)] = int(contentsTxt[i+oset_PPS][1:commaLoc])
 	pps_T[int(i/period)] = int(contentsTxt[i+oset_PPS][commaLoc+1:])

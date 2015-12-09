@@ -18,7 +18,7 @@ txxxx...,xxxx... (times for serial,pps)
 """
 import numpy as np
 import matplotlib.pyplot as plt
-filename = "GPSMIL14ChckdCor"
+filename = "GPSMIL33ChckdCor"
 
 # extract data into arrays
 
@@ -103,14 +103,15 @@ serEserE_dT = [0]*(len(serE_T)-1)
 for i in range(len(serEserE_dT)):
 	serEserE_dT[i] = serE_T[1+i]-serE_T[i]
 	
-	
-plt.plot(serser_dT, linewidth = 0.2)
-plt.plot(serEserE_dT, linewidth = 0.4)
+xplot = np.linspace(0,len(ppsser_dT),len(ppsser_dT))
+plt.scatter(xplot, ppsser_dT, s=1, linewidth=0, c='green')
+plt.scatter(xplot, ppsserE_dT, s=1, linewidth=0, c='blue')
+plt.xlim(min(xplot),max(xplot))
 plt.xlabel("samples ~ 1s interval")
 plt.ylabel("time / ms")
-plt.title("Expected Serial Serial difference using Kalman filter")
-plt.annotate("std dev "+str(round(np.std(serser_dT),1))+" --> "+str(round(np.std(serEserE_dT),1))+" ms", xy=(0.05, 0.95), xycoords='axes fraction')
-plt.savefig(filename+"serserKalman.png", dpi=600, facecolor='w', edgecolor='w',
+plt.title("Expected PPS Serial difference using Kalman filter")
+plt.annotate("std dev "+str(round(np.std(ppsser_dT),1))+" --> "+str(round(np.std(ppsserE_dT),1))+" ms", xy=(0.05, 0.95), xycoords='axes fraction')
+plt.savefig(filename+"ppsserKalman.png", dpi=600, facecolor='w', edgecolor='w',
         orientation='portrait', papertype=None, format=None,
         transparent=False, bbox_inches=None, pad_inches=0.1,
         frameon=None)
