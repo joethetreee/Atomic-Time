@@ -35,17 +35,14 @@ for i in range(len(contentsTxt)):
 		pps_T[j] = int(line[commaLoc+1:])
 		j += 1
 		
-ser_T = ser_T[:j+1]
-pps_T = pps_T[:j+1]
-		
-ser_T = ser_T[:50]
-pps_T = pps_T[:50]
+ser_T = ser_T[:j]
+pps_T = pps_T[:j]
 
 
 serE_T = [0]*len(ser_T)	 	# expected time of serial arrival
 covU_T = [0]*len(ser_T)	 	# expected uncertainty
 ardU_t = 0.5				# uncertainty in arduino times
-ardD_t = 1.126			 	# arduino drift per millisecond (from post-analysis) - defined as ard_ms in 1s - 1000
+ardD_t = (pps_T[-1]-pps_T[0])/(len(pps_T)-1)-1000	# arduino drift per millisecond (from post-analysis) - defined as ard_ms in 1s - 1000
 serU_t = 150			 	# uncertainty in gps serial arrival times
 
 def KalFil0_n(serE0_t_, ard_dt, ser_t, covU0_t_):
@@ -96,7 +93,7 @@ for i in range(len(serser_dT)):
 	
 serEserE_dT = [0]*(len(serE_T)-1)
 for i in range(len(serEserE_dT)):
-	serEserE_dT[i] = serE_T[1+i]-ser_T[i]
+	serEserE_dT[i] = serE_T[1+i]-serE_T[i]
 	
 
 	
