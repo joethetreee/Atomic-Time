@@ -31,7 +31,6 @@ def CheckLineStart(text, textStart):
 	return False
 
 def ConvertHHMMSS_s(tH):
-	print(tH)
 	ts = int(tH[:2])*60*60
 	ts += int(tH[2:4])*60
 	ts += int(tH[4:6])
@@ -59,12 +58,12 @@ while (i<len(contentsTxt)):	 		 	# while loop because for loop does not work as 
 		commaLoc2 = commaLoc+contentsTxt[i+oset_GGA][commaLoc:].index(',')
 		qVal = int(contentsTxt[i+oset_GGA][commaLoc:commaLoc2])
 		if (qVal == 0):
-			#print(line)
+			#print("qVal", i, contentsTxt[i+oset_GGA])
 			delete = True
 	
 	if (not delete and not conPrev): 		# check if the conctn is new -- check & remove new conctn data where the is no new pps since
 		commaLoc = 1+contentsTxt[i+oset_PPS][1:].index(",")
-		print("~",contentsTxt[i+oset_PPS][1:commaLoc])
+		#print("~",contentsTxt[i+oset_PPS][1:commaLoc])
 		ser_t = int(contentsTxt[i+oset_PPS][1:commaLoc])
 		pps_t = int(contentsTxt[i+oset_PPS][commaLoc+1:])
 		if (ser_t-pps_t>1000): 		# check if there was a pps signal since the previous msg (which had no connection)
@@ -132,20 +131,24 @@ print ("ti, tf, ni, nf, nif, ppsAvg",ti, tf, ni, nf, nif, ppsAvg)
 # work out jumps in time from GGA message
 ppsCur = 0 								# time of PPS for current line
 ppsPrev = 0 							# time of PPS for previous line
+serCur = 0 							 	# time of serial for previous line
+serPrev = 0 							# time of serial for previous line
 ggaCur = 0 								# time of GGA for current line
 ggaPrev = 0 							# time of GGA for previous line
-dt_pps = 0 								# correction for jumps based on difference in pps
+cor_pps = 0 							# correction for jumps based on difference in pps
+cor_ser = 0 							# correction for serial based on pps jumps
 for i in range(0, len(contentsTxtCor)-1, period):
-	print("->i:",i)	
+	#print("->i:",i)	
 	
 	ggaPrev = ggaCur
 	ppsPrev = ppsCur
+	serPrev = serCur
 	
 	# find absolute time using GGA
 	line = contentsTxtCor[oset_GGA+i]
 	commaLoc = 0
 	for commaNum in range(1): 	 	# find time
-		print("A",oset_GGA+i)
+		#print("A",oset_GGA+i)
 		commaLoc += line[commaLoc:].index(',')+1
 	ggaH = line[commaLoc:commaLoc+6] 			# GGA time in HHMMSS format (string)
 	ggaCur = ConvertHHMMSS_s(ggaH)
@@ -154,7 +157,7 @@ for i in range(0, len(contentsTxtCor)-1, period):
 	line = contentsTxtCor[oset_PPS+i]
 	commaLoc = 0
 	for commaNum in range(1): 	 	# find time
-		print("B",oset_PPS+i)
+		#print("B",oset_PPS+i)
 		commaLoc += line[commaLoc:].index(',')+1
 	ppsCur = int(line[commaLoc:])
 	
@@ -165,14 +168,30 @@ for i in range(0, len(contentsTxtCor)-1, period):
 	if (ggad<0):
 		ggad += 60*60*24
 		
-	if (round(dt_pps,1)!=1):
-		dt_pps += int(ppsAvg-(ppsCur-ppsPrev))
+	pps_dt = ppsCur-ppsPrev
+	serCur = int(line[1:commaLoc-1])
+	
+	# work out whether we need to correct serial or not
+	# there are two kinds of correction here:
+	# i) removed section due to connection loss; we perform time shift to "cut out" connection loss -- modify pps and ser times
+	# ii) pps has not updated but serial has; we only modify pps
+	
+	correctSer_PPS = False 				# whether we need to correct serial based on pps
+	if (round((serCur-serPrev)/1000,1)!=1):
+		correctSer_PPS = True
 		
-	print("ggad: ",ggad)
-	print("dt_pps: ",dt_pps)
+		
+	if (round(pps_dt/1000,1)!=1):
+		cor_pps += int(ppsAvg-(ppsCur-ppsPrev))
+		if (correctSer_PPS):
+			cor_ser += int(ppsAvg-(ppsCur-ppsPrev))
+		print("jump", i, pps_dt, dt_pps, ppsPrev, ppsCur, ppsCur+cor_pps, serCur+cor_ser)
+		
+	#print("ggad: ",ggad)
+	#print("dt_pps: ",dt_pps)
 	
 	
-	contentsTxtCor[oset_PPS+i] = "t"+str(int(line[1:commaLoc-1])+dt_pps)+","+str(ppsCur+dt_pps)+"\n"
+	contentsTxtCor[oset_PPS+i] = "t"+str(serCur+cor_ser)+","+str(ppsCur+cor_pps)+"\n"
 
 
 contents = open("../../results/" + filename + "Cor.txt", mode='w')		# open/create file to write
