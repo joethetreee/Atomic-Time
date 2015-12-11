@@ -12,7 +12,7 @@ t<ser_time>,<pps_time>
 <> are not present and are there only to clarify data names
 """
 
-filename = "GPSMIL14Chckd"
+filename = "GPSMIL33Chckd"
 
 
 oset_GGA = 0 			# offset line for GGA
@@ -20,7 +20,7 @@ oset_PPS = 2 			# offset line for PPS line
 
 period = 1 				# number of lines for each second of data (will be computed)
 
-contents = open(filename+".txt", mode='r')
+contents = open("../../results/" + filename + ".txt", mode='r')
 contentsTxt = contents.readlines()
 contents.close()
 
@@ -175,7 +175,7 @@ for i in range(0, len(contentsTxtCor)-1, period):
 	contentsTxtCor[oset_PPS+i] = "t"+str(int(line[1:commaLoc-1])+dt_pps)+","+str(ppsCur+dt_pps)+"\n"
 
 
-contents = open(filename+"Cor.txt", mode='w')		# open/create file to write
+contents = open("../../results/" + filename + "Cor.txt", mode='w')		# open/create file to write
 
 for i in range(len(contentsTxtCor)):
 	contents.write(str(contentsTxtCor[i]))
