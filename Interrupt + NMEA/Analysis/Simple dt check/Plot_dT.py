@@ -19,7 +19,7 @@ doesn't matter which other lines are present; information extracted from t<><> r
 import numpy as np
 import matplotlib.pyplot as plt
 
-filename = "GPSMIL14ChckdCor"
+filename = "GPSMIL33ChckdCor"
 
 def ColArray(N): 							# does colours
 	colourNum = np.linspace(0, 1, N)
@@ -29,7 +29,7 @@ def ColArray(N): 							# does colours
 	return colours
 	
 
-contents = open(filename+".txt", mode='r')
+contents = open("../../results/" + filename + ".txt", mode='r')
 contentsTxt = contents.readlines()
 contents.close()
 

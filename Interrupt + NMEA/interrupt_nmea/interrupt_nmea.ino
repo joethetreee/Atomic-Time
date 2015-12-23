@@ -1,22 +1,10 @@
 #include <SPI.h>
-#include <Adafruit_GPS.h>
 #include <SoftwareSerial.h>
-//#include <SD.h>
 #include "SdFat.h"
-
 #include <avr/sleep.h>
 
 SoftwareSerial gpsSerial(8, 7);
-Adafruit_GPS GPS(&gpsSerial);
 
-//HardwareSerial mySerial = Serial;
-//Adafruit_GPS GPS(&mySerial);
-
-// Set GPSECHO to 'false' to turn off echoing the GPS data to the Serial console
-// Set to 'true' if you want to debug and listen to the raw GPS sentences
-#define GPSECHO  true
-/* set to true to only log to SD when GPS has a fix, for debugging, keep it false */
-#define LOG_FIXONLY false  
 
 // Set the pins used
 #define chipSelect 10
@@ -35,34 +23,15 @@ int writeNow = 0;
 int ppsWriteNow = 0;
 int count1 = 0;
 int count2 = 0;
-char nmea1[80];
-char nmea2[80];
+char nmea1[90];
+char nmea2[90];
 bool writeData = false;
+bool firstLoop = true;
 int fill = 1;
-
-// read a Hex value and return the decimal equivalent
-uint8_t parseHex(char c) {
-  if (c < '0')
-    return 0;
-  if (c <= '9')
-    return c - '0';
-  if (c < 'A')
-    return 0;
-  if (c <= 'F')
-    return (c - 'A')+10;
-}
 
 // blink out an error code
 void error(uint8_t errno) {           // note: blink code won't work after sd.begin() because SPI disables pin13 LED!!! We must end SPI first
   SPI.end();
-  /*
-  if (SD.errorCode()) {
-    putstring("SD error: ");
-    Serial.print(card.errorCode(), HEX);
-    Serial.print(',');
-    Serial.println(card.errorData(), HEX);
-    }
-  */
   while(1) {
     uint8_t i;
     for (i=0; i<errno; i++) {
@@ -90,7 +59,6 @@ void setup() {
   // output, even if you don't use it:
   pinMode(10, OUTPUT);
 
-  SPI.end();
   Blink(ledPin, 1500);
 
   if (!sd.begin(chipSelect, SPI_FULL_SPEED)) {      // if you're using an UNO, you can use this line instead
@@ -110,17 +78,9 @@ void setup() {
   if (!logfile.open(filename, O_RDWR | O_CREAT | O_AT_END)) {
     error(3);
   }
-  delay(500);
-  logfile.write("begin");
-  logfile.write('\n');
-  logfile.flush();
-  delay(500);
-  
 
-  GPS.begin(9600);
-  GPS.sendCommand(PMTK_SET_NMEA_OUTPUT_RMCGGA);
-  GPS.sendCommand(PMTK_SET_NMEA_UPDATE_1HZ);
-  GPS.sendCommand(PGCMD_NOANTENNA);
+  // Start the software serial connection
+  gpsSerial.begin(9600);
 
   pinMode(3, INPUT);
   pinMode(2, INPUT);
@@ -129,12 +89,18 @@ void setup() {
 }
 
 void loop() {
-  char c = GPS.read();
-  if (c) {
-    detachInterrupt(digitalPinToInterrupt(2));
-    detachInterrupt(digitalPinToInterrupt(3));
-  }
-  while (c) {
+  while(gpsSerial.available()) {
+
+    // If this is the first time we've entered the loop, remove the interrupts so our serial reading isn't interrupted.
+    if (firstLoop) {
+      detachInterrupt(digitalPinToInterrupt(2));
+      detachInterrupt(digitalPinToInterrupt(3));
+    }
+
+    // Read from the software serial buffer
+    char c = gpsSerial.read();
+
+    // We want to record two NMEA sentences. So start by filling nmea1 buffer...
     if (fill == 1) {
       nmea1[count1] = c;
       count1++;
@@ -142,31 +108,33 @@ void loop() {
         nmea1[count1] = '\0';
         fill = 2;
       }
+    // Then fill the nmea2 buffer.
     } else if (fill == 2) {
       nmea2[count2] = c;
       count2++;
       if (c == '\n') {
         nmea2[count2] = '\0';
         fill = 1;
+
+        // Once we've got both sentences, set our write flag to true and exit the loop
         writeData = true;
         break;
       }
     }
-    c = GPS.read();
   }
-
+  
   if (writeData == true) {
-    // Write to file
+    // Write NMEA sentences to file
     logfile.print(nmea1);
-//    logfile.print(",");
-//    logfile.print(milliLast);
-//    logfile.print(",");
-//    logfile.println(ppsMilliLast);
     logfile.print(nmea2);
+
+    // Write the serial and PPS interrupt trigger times too
     logfile.print("t");
     logfile.print(milliLast);
     logfile.print(",");
     logfile.println(ppsMilliLast);
+
+    // Force a file write
     logfile.flush();
     
     // Reset for next data set
@@ -175,6 +143,8 @@ void loop() {
     count1 = 0;
     count2 = 0;
     writeData = false;
+
+    // Re-attach the interrupts we removed earlier
     attachInterrupt(digitalPinToInterrupt(3), getInputTime, RISING);
     attachInterrupt(digitalPinToInterrupt(2), getPPSTime, RISING);
   }
