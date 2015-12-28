@@ -9,7 +9,7 @@ plot based on number of satellites
 
 import numpy as np
 import matplotlib.pyplot as plt
-filename = "GPSMIL33ChckdCor"
+filename = "GPSMIL37"
 normalise = False
 
 oset_GGA = 0 				# offset of GGA sentence
@@ -103,7 +103,7 @@ binMax = 1000
 binNum = 1000
 ser_leg = [0]*len(ppsser_dT)
 txt_leg = [str(i) for i in qTypes]
-for j in range(len(ppsser_dT_)):
+for j in range(4, len(ppsser_dT_) - 1):
 	histData = ppsser_dT_[j]
 	binWidth = (binMax - binMin)
 	binEdges = np.linspace(binMin, binMax, binNum)
@@ -123,8 +123,9 @@ for j in range(len(ppsser_dT_)):
 		
 	ser_leg[j] ,= plt.plot(binMids, binVals)
 	
-plt.title("pps-serial dT dist by # of satellites")
-plt.xlabel("dt /ms")
-plt.ylabel("frequency")
+plt.title("PPS - Serial Delta Time by # of Satellites")
+plt.xlabel("PPS - Serial Offset (ms)")
+plt.ylabel("Frequency")
+plt.xlim(200, 400)
 plt.legend(ser_leg, txt_leg)
 plt.show()

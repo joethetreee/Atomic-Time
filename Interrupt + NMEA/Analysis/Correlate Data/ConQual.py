@@ -14,7 +14,7 @@ txxxx,xxxx 	    (serial,pps times)
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.stats.stats import pearsonr
-filename = "GPSMIL33ChckdCor"
+filename = "GPSMIL37Cor"
 
 oset_GGA = 0 				# offset of GGA sentence
 oset_PPS = 2 				# offset of PPS sentence

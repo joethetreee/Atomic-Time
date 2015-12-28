@@ -12,7 +12,7 @@ t<ser_time>,<pps_time>
 <> are not present and are there only to clarify data names
 """
 
-filename = "GPSMIL33Chckd"
+filename = "GPSMIL37"
 
 
 oset_GGA = 0 			# offset line for GGA
@@ -185,7 +185,7 @@ for i in range(0, len(contentsTxtCor)-1, period):
 		cor_pps += int(ppsAvg-(ppsCur-ppsPrev))
 		if (correctSer_PPS):
 			cor_ser += int(ppsAvg-(ppsCur-ppsPrev))
-		print("jump", i, pps_dt, dt_pps, ppsPrev, ppsCur, ppsCur+cor_pps, serCur+cor_ser)
+		#print("jump", i, pps_dt, dt_pps, ppsPrev, ppsCur, ppsCur+cor_pps, serCur+cor_ser)
 		
 	#print("ggad: ",ggad)
 	#print("dt_pps: ",dt_pps)
