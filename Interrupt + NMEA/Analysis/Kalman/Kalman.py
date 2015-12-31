@@ -18,7 +18,7 @@ txxxx...,xxxx... (times for serial,pps)
 """
 import numpy as np
 import matplotlib.pyplot as plt
-filename = "GPSMIL33ChckdCor"
+filename = "GPSMIL37ChckdCor"
 
 # extract data into arrays
 
@@ -38,8 +38,8 @@ for i in range(len(contentsTxt)):
 		pps_T[j] = int(line[commaLoc+1:])
 		j += 1
 		
-ser_T = ser_T[:j]
-pps_T = pps_T[:j]
+ser_T = ser_T[500:1000]
+pps_T = pps_T[500:1000]
 
 
 serE_T = [0]*len(ser_T)	 	# expected time of serial arrival
@@ -110,8 +110,9 @@ plt.xlim(min(xplot),max(xplot))
 plt.xlabel("samples ~ 1s interval")
 plt.ylabel("time / ms")
 plt.title("Expected PPS Serial difference using Kalman filter")
-plt.annotate("std dev "+str(round(np.std(ppsser_dT),1))+" --> "+str(round(np.std(ppsserE_dT),1))+" ms", xy=(0.05, 0.95), xycoords='axes fraction')
-plt.savefig(filename+"ppsserKalman.png", dpi=600, facecolor='w', edgecolor='w',
+plt.annotate("std dev "+str(round(np.std(ppsser_dT),1))+
+	 " --> "+str(round(np.std(ppsserE_dT),1))+" ms", xy=(0.05, 0.95), xycoords='axes fraction')
+plt.savefig(filename+"ppsserKalman_500_1000.png", dpi=600, facecolor='w', edgecolor='w',
         orientation='portrait', papertype=None, format=None,
         transparent=False, bbox_inches=None, pad_inches=0.1,
         frameon=None)
