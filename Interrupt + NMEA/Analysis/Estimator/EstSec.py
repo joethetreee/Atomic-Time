@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Created on Fri Nov 20 13:19:25 2015
+Created on Fri Dec 15 13:19:25 2015
 
 @author: Duncan
 
@@ -13,8 +13,10 @@ txxxx...,xxxx... (times for serial,pps)
 """
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib.ticker as plttick
 import KalmanFilter as kal
+
+from EstSec_by_dist import MinimiseWidth
+
 filename = "GPSMIL33ChckdCor"
 
 # Kalman data
@@ -54,81 +56,26 @@ pps_T = pps_T[:j]
 ser_T0 = [ser_T[i]-ser_T[0] for i in range(len(ser_T))]
 pps_T0 = [pps_T[i]-pps_T[0] for i in range(len(ser_T))]
 
-##Distribution stuff
-#
-#estDifEnd = []
-#estAvg = []
-#estCCor = []
-#act = []
-#xstep = 50
-#for i in range(0,len(ser_T0),xstep):
-#	x = range(0, min(len(ser_T0)-1,i+xstep)-i,1)
-#	if (len(x)<3):
-#		continue
-#	y = ser_T0[i:i+x[-1]+1]
-#	y = [y[j]-y[0] for j in range(len(y))]
-#	z = pps_T0[i:i+x[-1]+1]
-#	z = [z[j]-z[0] for j in range(len(z))]
-#	ccor = CrossCor(x, y)/CrossCor(x, x)
-#	avg = 0
-#	for i in range(len(x)):
-#		if (x[i]==0): avg += 1000
-#		else: avg += y[i]/x[i]
-#	avg /= len(x)
-#	avgEnd = (y[-1]-y[0])/(len(y)-1)
-#	actT = (z[-1]-z[0])/(len(z)-1)
-#	
-#	estDifEnd.append(avgEnd)
-#	estAvg.append(avg)
-#	estCCor.append(ccor)
-#	act.append(actT)
-#	
-#dataTypes = [estDifEnd,"End Time Difference",estAvg,"Average Ticks",estCCor,"Cross Correlation"]
-#
-#binMin = 999
-#binMax = 1002
-#binWidth = 0.05
-#binNum = (binMax-binMin)/binWidth
-#binEdges = np.linspace(binMin,binMax,binNum+1)
-#binMids = [(binEdges[i+1]+binEdges[i])/2 for i in range(len(binEdges)-1)]
-#
-#for i in range(0, len(dataTypes), 2):
-#	data = dataTypes[i]
-#	binVals = np.histogram(data, bins=binEdges)[0]
-#	
-#	plt.figure()
-#	ax = plt.gca()
-#	ax.plot(binMids,binVals)
-#	plt.title("Second estimation using "+dataTypes[i+1]+" sample length "+str(xstep))
-#	plt.xlabel("second length / ms")
-#	plt.ylabel("frequency")
-#	x_formatter = plttick.ScalarFormatter(useOffset=False)
-#	ax.xaxis.set_major_formatter(x_formatter)
-#	plt.annotate("actual "+str(round(np.average(act),2))+"+/-"+str(round(np.std(act),2))+
-#		";  estimator "+str(round(np.average(data),2))+"+/-"+str(round(np.std(data),2))+
-#		";  MSE "+str(round(np.sqrt((np.average(data)-np.average(act))**2+np.std(data)**2),2)),
-#		xy=(0.05, 0.95), xycoords='axes fraction')
-#	plt.savefig(filename+"Estimator "+dataTypes[i+1]+"_smpl"+str(xstep)+".png", dpi=600, facecolor='w', edgecolor='w',
-#	        orientation='portrait', papertype=None, format=None,
-#	        transparent=False, bbox_inches=None, pad_inches=0.1,
-#	        frameon=None)
-
-#Length effect stuff
-
 mseDifEnd = []
 mseAvg = []
 mseCCor = []
 mseKal1 = [] 		# average two values then do cross correlation
+mseDist = [] 		# from minimising distribution width
 xArr = []
-for xstep_ in range(1,8):
+for xstep_ in range(1,11):
+	print(xstep_)
 	estDifEnd = []
 	estAvg = []
 	estCCor = []
 	estKal1 = []
+	estDist = []
 	act = []
 	xstep = int(np.exp(xstep_))
 	
 	for i in range(0,len(ser_T0),xstep):
+		if (len(act)>=100): 						# we don't need to repeat too many times
+			break
+		print(i,xstep)
 		x = range(0, min(len(ser_T0)-1,i+xstep)-i,1)
 		if (len(x)<xstep):
 			continue
@@ -149,11 +96,16 @@ for xstep_ in range(1,8):
 		#actT = (z[-1]-z[0])/(len(z)-1)
 		actT = CrossCor(x, z)/CrossCor(x, x)
 
-		ky = [0]*len(y)
-		ku = [um]*len(y)
-		for i in range(1,len(x)):
-			(ky[i],ku[i]) = kal.KalFilIter(ky[i-1],1000,y[i],ku[i-1],ue,um,1,1,1)
-		avgEndKal1 = (ky[-1]-ky[0])/(len(y)-1)
+		kalIter = 20 			# number of datapoints to filter
+		kalIter = min(kalIter,int(len(y)/2)-1)
+		ky = [y[kalIter],y[-kalIter-1]] 	# start and end filtered values
+		ku = [150,150]
+		for i in range(0,kalIter):
+			(ky[1],ku[1]) = kal.KalFilIter(ky[1],1000,y[-kalIter+i],ku[1],ue,um,1,1,1)
+			(ky[0],ku[0]) = kal.KalFilIter(ky[0],-1000,y[kalIter-1-i],ku[0],ue,um,1,1,1)
+		avgEndKal1 = (ky[1]-ky[0])/(len(y)-1)
+		
+		avgDist = MinimiseWidth(y)[0]
 #		ky = [0]*len(y)
 #		ku = [um]*len(y)
 #		for i in range(1,len(x)):
@@ -164,19 +116,22 @@ for xstep_ in range(1,8):
 		estAvg.append(avg)
 		estCCor.append(ccor)
 		estKal1.append(avgEndKal1)
+		estDist.append(avgDist)
 		act.append(actT)
 	xArr.append(xstep)
 	mseDifEnd.append(np.sqrt((np.average(act)-np.average(estDifEnd))**2+np.std(estDifEnd)**2))
 	mseAvg.append(np.sqrt((np.average(act)-np.average(estAvg))**2+np.std(estAvg)**2))
 	mseCCor.append(np.sqrt((np.average(act)-np.average(estCCor))**2+np.std(estCCor)**2))
 	mseKal1.append(np.sqrt((np.average(act)-np.average(estKal1))**2+np.std(estKal1)**2))
+	mseDist.append(np.sqrt((np.average(act)-np.average(estDist))**2+np.std(estDist)**2))
 	#print(xArr[-1],mseDifEnd[-1],mseAvg[-1],mseCCor[-1])
 
 #log
 ser_difEnd ,= plt.plot(np.log(xArr),np.log(mseDifEnd))
 ser_avg ,= plt.plot(np.log(xArr),np.log(mseAvg))
 ser_cCor ,= plt.plot(np.log(xArr),np.log(mseCCor))
-ser_Kal1 ,= plt.plot(np.log(xArr),np.log(mseKal1))
+ser_kal1 ,= plt.plot(np.log(xArr),np.log(mseKal1))
+ser_dist ,= plt.plot(np.log(xArr),np.log(mseDist))
 
 ##linear
 #ser_difEnd ,= plt.plot(xArr,mseDifEnd)
@@ -191,8 +146,8 @@ plt.ylabel("MSE / ms")
 #linear
 plt.xlabel("log of Sample size")
 plt.ylabel("log of (MSE / ms)")
-plt.legend([ser_difEnd,ser_avg,ser_cCor,ser_Kal1],["End point difference","Average",
-		"Cross correlation","Kalman, end diff"])
+plt.legend([ser_difEnd,ser_avg,ser_cCor,ser_kal1,ser_dist],["End point difference","Average",
+		"Cross correlation","Kalman, end diff","Dist. width"])
 plt.savefig(filename+"EstimatorMSE.png", dpi=600, facecolor='w', edgecolor='w',
         orientation='portrait', papertype=None, format=None,
         transparent=False, bbox_inches=None, pad_inches=0.1,
