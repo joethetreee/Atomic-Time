@@ -84,13 +84,18 @@ colA = [0]*len(ppsser_dT)
 for i in range(len(colA)):
 	colA[i] = rgb=colArray[qTypes.index(qArr[i])][:3]
 	
-qTypesN = [0]*len(qTypes)
+qTypesN = [0]*len(qTypes) 							# quality types normalised up to 1.0
+qTypesNZ = [0]*len(qTypes) 						# quality types normalised between 0.0->1.0
 qArrN = [0]*len(qArr)
+qArrNZ = [0]*len(qArr)
 qMax = max(qTypes)
+qMin = min(qTypes)
 for i in range(len(qTypes)):
 	qTypesN[i] = qTypes[i]/qMax
+	qTypesNZ[i] = (qTypes[i]-qMin)/(qMax-qMin)
 for i in range(len(qArrN)):
 	qArrN[i] = qArr[i]/qMax
+	qArrNZ[i] = (qArr[i]-qMin)/(qMax-qMin)
 	
 ppsser_dT_ = [[] for i in range(len(dataComb))]
 for i in range(len(ppsser_dT_)):
@@ -101,8 +106,13 @@ for i in range(len(ppsser_dT_)):
 binMin = 0
 binMax = 1000
 binNum = 1000
-ser_leg = [0]*len(ppsser_dT)
+ser_leg = [0]*len(ppsser_dT_)
 txt_leg = [str(i) for i in qTypes]
+
+# plot a scatter plot so we can get our colours for the colour bar (can't do with plt.plot); discard
+cbarPlot = plt.scatter(range(0,len(ppsser_dT),1),ppsser_dT,c=qArrNZ, cmap=plt.cm.gist_rainbow,linewidth='0', s=8)
+plt.clf()
+
 for j in range(len(ppsser_dT_)):
 	histData = ppsser_dT_[j]
 	binWidth = (binMax - binMin)
@@ -115,16 +125,25 @@ for j in range(len(ppsser_dT_)):
 	if (normalise):
 		tot = sum(binVals)
 		for k in range(len(binVals)):
-			binVals2[k] = float(binVals[k])/tot
-		binVals = binVals2
+			binVals[k] = float(binVals[k])/tot
 	
 	for i in range(len(binMids)):
 		binMids[i] = (binEdges[i]+binEdges[1+i])/2.0
 		
-	ser_leg[j] ,= plt.plot(binMids, binVals)
+	print(qTypes[j])
+	print(plt.cm.gist_rainbow(qTypesNZ[j]))
+		
+	ser_leg[j] ,= plt.plot(binMids, binVals, color=plt.cm.gist_rainbow(qTypesNZ[j]))
 	
 plt.title("pps-serial dT dist by # of satellites")
 plt.xlabel("dt /ms")
 plt.ylabel("frequency")
-plt.legend(ser_leg, txt_leg)
+
+cbarTicksTemp = np.linspace(min(qTypesNZ), max(qTypesNZ), len(qTypesNZ))
+cbar = plt.colorbar(cbarPlot, ticks=cbarTicksTemp)
+cbarTicksNew = np.linspace(min(qTypes), max(qTypes), len(qTypes), dtype = int)
+print (cbarTicksTemp)
+print(cbarTicksNew)
+cbar.ax.set_yticklabels(cbarTicksNew)  # horizontal colorbar
+
 plt.show()

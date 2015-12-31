@@ -99,6 +99,7 @@ x_data = np.linspace(0, len(ppsser_dT)-1, len(ppsser_dT))
 	
 s = plt.scatter(x_data, ppsser_dT, c=qArrN, cmap=plt.cm.gist_rainbow    ,    linewidth='0', s=8)
 plt.xlim(0, len(x_data))
+plt.ylim(max(0, int(min(ppsser_dT)/100)*100), min(1000, int(max(ppsser_dT)/100+1)*100))
 cbarTicksTemp = np.linspace(min(qTypesN), max(qTypesN), len(qTypesN))
 cbar = plt.colorbar(s, ticks=cbarTicksTemp)
 cbarTicksNew = np.linspace(min(qTypes), max(qTypes), len(qTypes), dtype = int)
