@@ -66,11 +66,18 @@ pps_T = pps_T[:j]
 #ser_T = ser_T[30000:40000]
 #pps_T = pps_T[30000:40000]
 
+start = 0
+end = 10000
+
+ser_T = ser_T[start:end]
+pps_T = pps_T[start:end]
+
 # get second length and find secser_dT
-avgTx = 1000 							# expected length of second
+avgTx = (ser_T[-1]-ser_T[0])/(len(ser_T)-1) 	# expected length of second
 avgTu = 1 							# uncertainty in length of second
 secser_dT = [0]*len(ser_T)
-sampleSize = 2000
+sampleSize = 1000
+sampleSize = min(sampleSize, end-start)
 sampleNum = int(len(secser_dT)/sampleSize)
 ser_T = ser_T[:sampleSize*sampleNum]
 pps_T = pps_T[:sampleSize*sampleNum]
@@ -82,7 +89,7 @@ for i in range(sampleNum):
 	avgTu_ = np.std(sample_serser_dT)*2/sampleSize
 	avgTx_ = (sample_ser_T[-1]-sample_ser_T[0])/(len(sample_ser_T)-1)
 	#avgTx_ = (sample_pps_T[-1]-sample_pps_T[0])/(len(sample_pps_T)-1)
-	avgTu_=0
+	avgTu_=0.5
 	(avgTx,avgTu) = klm.KalFilIter(avgTx,0,avgTx_,avgTu,1,avgTu_,1,1,1)
 	for j in range(sampleSize):
 		secser_dT[i*sampleSize+j] = sample_ser_T[j]-(ser_T[0]+tOff)
@@ -99,8 +106,12 @@ binVals = [binVals[i]/(sum(binVals)*binWidth) for i in range(len(binVals))]
 
 
 plt.figure()
-plt.plot(binMids, binValsC)
-plt.plot(binMids, binVals)
+ser_distC ,= plt.plot(binMids, binValsC)
+ser_distV ,= plt.plot(binMids, binVals)
+plt.title("PPS-ser distributions")
+plt.xlabel("time /ms")
+plt.ylabel("Prob density")
+plt.legend([ser_distC,ser_distV],["Template","Data"])
 plt.show()
 
 # make sure we have peak at centre of binVals (might have some values out of bin range otherwise)
@@ -172,6 +183,6 @@ plt.xlabel("Samples")
 plt.ylabel("PPS prediction accuracy /ms")
 plt.title("PPS prediction using distribution profile")
 #plt.legend([ser_ppsppsP, ser_ppsppsPF], ["pps-pred", "pps-pred Filtered"])
-plt.annotate("Cast "+filenameC+"; data "+filename+" 30k-40k"+
-	"; second len Ser end dif", xy=(0.05, 0.95), xycoords='axes fraction')
+plt.annotate("Cast "+filenameC+"; data "+filename+" "+str(int(start/1000))+"k-"+str(int(end/1000))+
+	"k_"+str(int(sampleSize/1000))+"k; second len Ser end dif", xy=(0.05, 0.95), xycoords='axes fraction')
 plt.show()
