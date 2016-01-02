@@ -8,8 +8,9 @@ plot based on number of satellites
 """
 
 import numpy as np
+import matplotlib as mplt
 import matplotlib.pyplot as plt
-filename = "GPSMIL33ChckdCor"
+filename = "GPSMIL14ChckdCor"
 normalise = False
 
 oset_GGA = 0 				# offset of GGA sentence
@@ -26,7 +27,7 @@ def ColArray(N):
 	return colours
 	
 
-contents = open(filename+".txt", mode='r')
+contents = open("../../Results/"+filename+".txt", mode='r')
 contentsTxt = contents.readlines()
 contents.close()
 
@@ -115,7 +116,7 @@ plt.clf()
 
 for j in range(len(ppsser_dT_)):
 	histData = ppsser_dT_[j]
-	binWidth = (binMax - binMin)
+	binWidth = (binMax - binMin)/binNum
 	binEdges = np.linspace(binMin, binMax, binNum)
 	
 	binVals = np.histogram(histData, bins=binEdges)[0]
@@ -125,7 +126,8 @@ for j in range(len(ppsser_dT_)):
 	if (normalise):
 		tot = sum(binVals)
 		for k in range(len(binVals)):
-			binVals[k] = float(binVals[k])/tot
+			binVals2[k] = float(binVals[k])/tot
+		binVals = binVals2
 	
 	for i in range(len(binMids)):
 		binMids[i] = (binEdges[i]+binEdges[1+i])/2.0
@@ -135,9 +137,10 @@ for j in range(len(ppsser_dT_)):
 		
 	ser_leg[j] ,= plt.plot(binMids, binVals, color=plt.cm.gist_rainbow(qTypesNZ[j]))
 	
-plt.title("pps-serial dT dist by # of satellites")
-plt.xlabel("dt /ms")
-plt.ylabel("frequency")
+plt.title("PPS-serial time difference distribution by number of satellites")
+plt.xlabel("Time difference /ms")
+plt.ylabel("Frequency")
+mplt.rcParams.update({'font.size': 18})
 
 cbarTicksTemp = np.linspace(min(qTypesNZ), max(qTypesNZ), len(qTypesNZ))
 cbar = plt.colorbar(cbarPlot, ticks=cbarTicksTemp)

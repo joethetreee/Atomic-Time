@@ -10,11 +10,11 @@ data must contain the following two lines
 $GPGGA
 txxxx,xxxx 	    (serial,pps times)
 """
-
 import numpy as np
+import matplotlib as mplt
 import matplotlib.pyplot as plt
 from scipy.stats.stats import pearsonr
-filename = "GPSMIL33ChckdCor"
+filename = "GPSMIL14ChckdCor"
 
 oset_GGA = 0 				# offset of GGA sentence
 oset_PPS = 2 				# offset of PPS sentence
@@ -27,9 +27,8 @@ def ColArray(N):
 	for i in range(len(colours)):
 		colours[i] = plt.cm.hot(i)
 	return colours
-	
 
-contents = open(filename+".txt", mode='r')
+contents = open("../../Results/"+filename+".txt", mode='r')
 contentsTxt = contents.readlines()
 contents.close()
 
@@ -109,6 +108,7 @@ cbar.ax.set_yticklabels(cbarTicksNew)  # horizontal colorbar
 plt.title("pps-ser dt for different number of satellites")
 plt.ylabel("difference in time / ms")
 plt.xlabel("time / s")
+mplt.rcParams.update({'font.size': 18})
 
 plt.show()
 
