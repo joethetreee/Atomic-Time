@@ -17,12 +17,14 @@ txxxx...,xxxx... (times for serial,pps)
 
 """
 import numpy as np
+import matplotlib as mplt
 import matplotlib.pyplot as plt
-filename = "GPSMIL33ChckdCor"
+import KalmanFilter as klm
+filename = "GPSMIL37ChckdCor"
 
 # extract data into arrays
 
-contents = open(filename+".txt", mode='r')
+contents = open("../../Results/"+filename+".txt", mode='r')
 contentsTxt = contents.readlines()
 contents.close()
 
@@ -38,8 +40,10 @@ for i in range(len(contentsTxt)):
 		pps_T[j] = int(line[commaLoc+1:])
 		j += 1
 		
-ser_T = ser_T[:j]
-pps_T = pps_T[:j]
+start = 0		
+end = j
+ser_T = ser_T[start:end]
+pps_T = pps_T[start:end]
 
 
 serE_T = [0]*len(ser_T)	 	# expected time of serial arrival
@@ -47,38 +51,12 @@ covU_T = [0]*len(ser_T)	 	# expected uncertainty
 ardU_t = 0.5				# uncertainty in arduino times
 ardD_t = (pps_T[-1]-pps_T[0])/(len(pps_T)-1)-1000	# arduino drift per millisecond (from post-analysis) - defined as ard_ms in 1s - 1000
 serU_t = 150			 	# uncertainty in gps serial arrival times
-
-def KalFil0_n(serE0_t_, ard_dt, ser_t, covU0_t_):
-	''' serE_t_ is old expected serial arrival time, art_dt is diff in arduino time at serial arrival,
-	ser_t is the time of serial arrival, covU_t_ is old covariance uncertainty. '''
-	serE0_t = serE0_t_ + ard_dt 	# expected new serial time
-	covU0_t = covU0_t_ + ardU_t 	# expected new covariance uncertainty
-	serD_t = ser_t - serE0_t 	# difference between actual and expected serial time
-	S = covU0_t + serU_t 		# innovation covariance
-	K = covU0_t/S 			# Kalman gain
-	serE0_t = serE0_t + K*serD_t 	# new estimate of serial time
-	covU0_t = (1-K)*covU0_t 		# new estimate of covariance uncertainty
-	
-	return serE0_t, covU0_t
-
-def KalFil1_n(serE1_t_, ard_dt, serE0_t_, covU1_t_, covU0_t):
-	''' serE_t_ is old expected serial arrival time, art_dt is diff in arduino time at serial arrival,
-	ser_t is the time of serial arrival, covU_t_ is old covariance uncertainty. '''
-	serE1_t = serE1_t_ + ard_dt 	# expected new serial time
-	covU1_t = covU1_t_ + ardU_t 	# expected new covariance uncertainty
-	serD_t = serE0_t_ - serE1_t 	# difference between actual and expected serial time
-	S = covU1_t + covU0_t 		# innovation covariance
-	K = covU1_t/S 			# Kalman gain
-	serE1_t = serE1_t + K*serD_t 	# new estimate of serial time
-	covU1_t = (1-K)*covU1_t 		# new estimate of covariance uncertainty
-	
-	return serE1_t, covU1_t
 	
 covU_T[0] = 100
 serE_T[0] = ser_T[0]
 
 for i in range(len(serE_T)-1):
-	serE_T[1+i], covU_T[1+i] = KalFil0_n(serE_T[i], 1000+ardD_t, ser_T[1+i], covU_T[i])
+	serE_T[1+i], covU_T[1+i] = klm.KalFilIter(serE_T[i], 1000+ardD_t, ser_T[1+i], covU_T[i], ardU_t, serU_t)
 	
 ppsserE_dT = [0]*len(serE_T)
 for i in range(len(serE_T)):
@@ -103,15 +81,55 @@ serEserE_dT = [0]*(len(serE_T)-1)
 for i in range(len(serEserE_dT)):
 	serEserE_dT[i] = serE_T[1+i]-serE_T[i]
 	
+
+mplt.rcParams.update({'font.size': 16})
+fig = plt.figure(figsize=(10,6))
+
+yLow = min(min(ppsser_dT),min(ppsserE_dT))
+yHi = max(max(ppsser_dT),max(ppsserE_dT))
+yLow = max(0, int(yLow/20)*20)
+yHi = min(1000, int(yHi/20+1)*20)
+	
 xplot = np.linspace(0,len(ppsser_dT),len(ppsser_dT))
-plt.scatter(xplot, ppsser_dT, s=1, linewidth=0, c='green')
-plt.scatter(xplot, ppsserE_dT, s=1, linewidth=0, c='blue')
+ser_ppsser = plt.scatter(xplot, ppsser_dT, s=2, linewidth=0, color="black")
+ser_ppsserE = plt.scatter(xplot, ppsserE_dT, s=2, linewidth=0, color="red")
 plt.xlim(min(xplot),max(xplot))
-plt.xlabel("samples ~ 1s interval")
-plt.ylabel("time / ms")
-plt.title("Expected PPS Serial difference using Kalman filter")
-plt.annotate("std dev "+str(round(np.std(ppsser_dT),1))+" --> "+str(round(np.std(ppsserE_dT),1))+" ms", xy=(0.05, 0.95), xycoords='axes fraction')
-plt.savefig(filename+"ppsserKalman.png", dpi=600, facecolor='w', edgecolor='w',
-        orientation='portrait', papertype=None, format=None,
-        transparent=False, bbox_inches=None, pad_inches=0.1,
-        frameon=None)
+plt.ylim(yLow,yHi)
+plt.title("PPS Serial difference using Kalman filter")
+plt.xlabel("Sample")
+plt.ylabel("Time difference / ms")
+lgndh = plt.legend([ser_ppsser,ser_ppsserE],["Raw","Kalman"])
+lgndh.legendHandles[0]._sizes = [30]
+lgndh.legendHandles[1]._sizes = [30]
+params = {'legend.fontsize': 18}
+plt.rcParams.update(params)    # the legend text fontsize
+plt.annotate("std dev "+str(int(round(np.std(ppsser_dT),0)))+
+	 " --> "+str(int(round(np.std(ppsserE_dT),0)))+" ms", xy=(0.05, 0.95), xycoords='axes fraction')
+plt.savefig("../../Results/"+filename+"ppsserKalman("+str(start)+"-"+str(end)+").png",dpi=400)
+plt.savefig("../../Results/"+filename+"ppsserKalman("+str(start)+"-"+str(end)+").svg")
+
+
+fig = plt.figure(figsize=(10,6))
+	
+yLow = min(min(serser_dT),min(serEserE_dT))
+yHi = max(max(serser_dT),max(serEserE_dT))
+yLow = max(0, int(yLow/20)*20)
+yHi = min(2000, int(yHi/20+1)*20)
+
+xplot = np.linspace(0,len(serser_dT),len(serser_dT))
+ser_serser = plt.scatter(xplot, serser_dT, s=2, linewidth=0, color="black")
+ser_serEserE = plt.scatter(xplot, serEserE_dT, s=2, linewidth=0, color="red")
+plt.xlim(min(xplot),max(xplot))
+plt.ylim(yLow,yHi)
+plt.title("Consecutive serial time difference using Kalman filter")
+plt.xlabel("Sample")
+plt.ylabel("Time difference / ms")
+lgndh = plt.legend([ser_serser,ser_serEserE],["Raw","Kalman"])
+lgndh.legendHandles[0]._sizes = [30]
+lgndh.legendHandles[1]._sizes = [30]
+params = {'legend.fontsize': 18}
+plt.rcParams.update(params)    # the legend text fontsize
+plt.annotate("std dev "+str(int(round(np.std(ppsser_dT),0)))+
+	 " --> "+str(int(round(np.std(ppsserE_dT),0)))+" ms", xy=(0.05, 0.95), xycoords='axes fraction')
+plt.savefig("../../Results/"+filename+"serserKalman("+str(start)+"-"+str(end)+").png",dpi=400)
+plt.savefig("../../Results/"+filename+"serserKalman("+str(start)+"-"+str(end)+").svg")

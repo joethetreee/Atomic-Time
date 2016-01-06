@@ -3,10 +3,10 @@
 removes failed data entries
 """
 
-filename = "GPSMIL33"
+filename = "GPSMIL37"
 linStart = ["$GPGGA","$GPRMC","t"] 		 	 	# start of each line
 
-contents = open("../../results/" + filename+".txt", mode='r')
+contents = open(filename+".txt", mode='r')
 contentsTxt = contents.readlines()
 contents.close()
 
@@ -31,7 +31,7 @@ goodLines = goodLines[:gli]
 			
 				
 
-contents = open("../../results/" + filename+"Chckd.txt", mode='w')		# open/create file to write
+contents = open(filename+"Chckd.txt", mode='w')		# open/create file to write
 
 for i in range(len(goodLines)):
 	contents.write(str(contentsTxt[goodLines[i]]))

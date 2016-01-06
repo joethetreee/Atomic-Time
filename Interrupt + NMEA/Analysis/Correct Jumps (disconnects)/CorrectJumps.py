@@ -10,9 +10,12 @@ $GPSMC...
 t<ser_time>,<pps_time>
 
 <> are not present and are there only to clarify data names
+
+Problem: after long PPS freezes/disconnect fixes there is sometimes a shift in PPS-ser times
+this could be caused by avgPPS not being correct at that time
 """
 
-filename = "GPSMIL37"
+filename = "GPSMIL37Chckd"
 
 
 oset_GGA = 0 			# offset line for GGA
@@ -20,7 +23,7 @@ oset_PPS = 2 			# offset line for PPS line
 
 period = 1 				# number of lines for each second of data (will be computed)
 
-contents = open("../../results/" + filename + ".txt", mode='r')
+contents = open(filename+".txt", mode='r')
 contentsTxt = contents.readlines()
 contents.close()
 
@@ -81,6 +84,13 @@ while (i<len(contentsTxt)):	 		 	# while loop because for loop does not work as 
 
 # truncate array to the end of the data		
 contentsTxtCor = contentsTxtCor[:j]
+
+contents = open(filename+"Fix.txt", mode='w')		# open/create file to write
+
+for i in range(len(contentsTxtCor)):
+	contents.write(str(contentsTxtCor[i]))
+	
+contents.close()
 
 
 # find average pps time length by finding first and last time
@@ -159,6 +169,7 @@ for i in range(0, len(contentsTxtCor)-1, period):
 	for commaNum in range(1): 	 	# find time
 		#print("B",oset_PPS+i)
 		commaLoc += line[commaLoc:].index(',')+1
+	serCur = int(line[1:commaLoc-1])
 	ppsCur = int(line[commaLoc:])
 	
 	if (i==0): 							# go back to start of loop if i is 0 (need to take diff between successive data)
@@ -168,8 +179,8 @@ for i in range(0, len(contentsTxtCor)-1, period):
 	if (ggad<0):
 		ggad += 60*60*24
 		
-	pps_dt = ppsCur-ppsPrev
-	serCur = int(line[1:commaLoc-1])
+	pps_dt = int(ppsCur-ppsPrev)
+	ser_dt = int(serCur-serPrev)
 	
 	# work out whether we need to correct serial or not
 	# there are two kinds of correction here:
@@ -177,24 +188,32 @@ for i in range(0, len(contentsTxtCor)-1, period):
 	# ii) pps has not updated but serial has; we only modify pps
 	
 	correctSer_PPS = False 				# whether we need to correct serial based on pps
-	if (round((serCur-serPrev)/1000,1)!=1):
+	if (int(round(ser_dt/1000,0))!=1):
 		correctSer_PPS = True
 		
+#	if (ggad!=1 and round(ser_dt/1000,1)!=1 and !correctSer_PPS):
+#		cor_pps += (1-ggad)*1000
 		
-	if (round(pps_dt/1000,1)!=1):
-		cor_pps += int(ppsAvg-(ppsCur-ppsPrev))
+	if (int(round(pps_dt/1000,0))!=1):
+		cor_pps += int(ppsAvg-pps_dt)
 		if (correctSer_PPS):
-			cor_ser += int(ppsAvg-(ppsCur-ppsPrev))
-		#print("jump", i, pps_dt, dt_pps, ppsPrev, ppsCur, ppsCur+cor_pps, serCur+cor_ser)
+			if (int(round(pps_dt,-3))!=1000): 		# if the PPS was not updated correctly
+				cor_ser += int(ppsAvg-round(ser_dt,-3))				
+			else: 								# if the PPS was updated correctly (in original file)
+				cor_ser += int(ppsAvg-pps_dt)
+		print("jump", i, pps_dt, serCur, ppsCur, ppsCur+cor_pps, serCur+cor_ser, correctSer_PPS)
+		
+	elif (int(round(ser_dt/1000,0))!=1):
+		cor_ser += int(ppsAvg-round(ser_dt,-3))
+		print("~jump", i, ser_dt, serPrev, serCur, serCur+cor_ser)
 		
 	#print("ggad: ",ggad)
 	#print("dt_pps: ",dt_pps)
 	
-	
 	contentsTxtCor[oset_PPS+i] = "t"+str(serCur+cor_ser)+","+str(ppsCur+cor_pps)+"\n"
 
 
-contents = open("../../results/" + filename + "Cor.txt", mode='w')		# open/create file to write
+contents = open(filename+"Cor.txt", mode='w')		# open/create file to write
 
 for i in range(len(contentsTxtCor)):
 	contents.write(str(contentsTxtCor[i]))
