@@ -129,7 +129,7 @@ lgndh.legendHandles[0]._sizes = [30]
 lgndh.legendHandles[1]._sizes = [30]
 params = {'legend.fontsize': 18}
 plt.rcParams.update(params)    # the legend text fontsize
-plt.annotate("std dev "+str(int(round(np.std(ppsser_dT),0)))+
-	 " --> "+str(int(round(np.std(ppsserE_dT),0)))+" ms", xy=(0.05, 0.95), xycoords='axes fraction')
+plt.annotate("std dev "+str(int(round(np.std(serser_dT),0)))+
+	 " --> "+str(round(np.std(serEserE_dT),1))+" ms", xy=(0.05, 0.95), xycoords='axes fraction')
 plt.savefig("../../Results/"+filename+"serserKalman("+str(start)+"-"+str(end)+").png",dpi=400)
 plt.savefig("../../Results/"+filename+"serserKalman("+str(start)+"-"+str(end)+").svg")
