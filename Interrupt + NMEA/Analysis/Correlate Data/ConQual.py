@@ -94,10 +94,13 @@ for i in range(len(qTypes)):
 for i in range(len(qArrN)):
 	qArrN[i] = qArr[i]/qMax
 
-x_data = np.linspace(0, len(ppsser_dT)-1, len(ppsser_dT))
+x_data = np.linspace(0, len(ppsser_dT)/1000-1, len(ppsser_dT))
+
+mplt.rcParams.update({'font.size': 15})
+fig = plt.figure(figsize=(11,6))
 	
-s = plt.scatter(x_data, ppsser_dT, c=qArrN, cmap=plt.cm.gist_rainbow    ,    linewidth='0', s=8)
-plt.xlim(0, len(x_data))
+s = plt.scatter(x_data, ppsser_dT, c=qArrN, cmap=plt.cm.gist_rainbow    ,    linewidth='0', s=2)
+plt.xlim(min(x_data), max(x_data))
 plt.ylim(max(0, int(min(ppsser_dT)/100)*100), min(1000, int(max(ppsser_dT)/100+1)*100))
 cbarTicksTemp = np.linspace(min(qTypesN), max(qTypesN), len(qTypesN))
 cbar = plt.colorbar(s, ticks=cbarTicksTemp)
@@ -105,11 +108,14 @@ cbarTicksNew = np.linspace(min(qTypes), max(qTypes), len(qTypes), dtype = int)
 print (cbarTicksTemp)
 print(cbarTicksNew)
 cbar.ax.set_yticklabels(cbarTicksNew)  # horizontal colorbar
-plt.title("pps-ser dt for different number of satellites")
+plt.title("PPS-serial difference with satellite number")
 plt.ylabel("difference in time / ms")
-plt.xlabel("time / s")
-mplt.rcParams.update({'font.size': 18})
-
-plt.show()
+plt.xlabel("Samples (thousands)")
 
 print(pearsonr(ppsser_dT, qArr))
+
+saveFileName = filename+"SerPPS_satNum"
+plt.savefig("../../Results/"+saveFileName+".png",dpi=400)
+plt.savefig("../../Results/"+saveFileName+".svg")
+
+plt.show()
