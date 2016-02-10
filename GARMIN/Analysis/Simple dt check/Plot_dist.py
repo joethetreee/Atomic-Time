@@ -12,7 +12,7 @@ Plot distributions
 import numpy as np
 import matplotlib as mplt
 import matplotlib.pyplot as plt
-filename = "GARNMEA20160126_021344ChckdCor"
+filename = "GARNMEA20160131_190024ChckdCor"
 normalise = False
 
 oset_GGA = 0 				# offset of GGA sentence

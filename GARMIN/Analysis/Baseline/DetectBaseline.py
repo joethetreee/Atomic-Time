@@ -9,7 +9,11 @@ import KalmanFilter as klm
 import numpy as np
 import matplotlib.pyplot as plt
 
-filename = "GPSMIL33ChckdCor"
+filename = "GARNMEA20160131_190024ChckdCor"
+
+start = 0
+stop = 10000
+
 utm = 250 					# uncertainty in measured time
 utp = 0.5 					# uncertainty in predicted time
 avg_T = 1000 				# average time
@@ -19,9 +23,12 @@ count = 0 					# number of ser_dTf on one side of avg_T (+: above, -: below)
 
 # extract data into arrays
 
-contents = open(filename+".txt", mode='r')
+contents = open("../../Results/"+filename+".txt", mode='r')
 contentsTxt = contents.readlines()
 contents.close()
+
+start = max(0,start)
+stop = min(len(contentsTxt),stop)
 
 ser_Tm = [0]*len(contentsTxt)
 pps_T = [0]*len(contentsTxt)
@@ -35,8 +42,8 @@ for i in range(len(contentsTxt)):
 		pps_T[j] = int(line[commaLoc+1:])
 		j += 1
 		
-ser_Tm = ser_Tm[0:200]
-pps_T = pps_T[0:200]
+ser_Tm = ser_Tm[start:stop]
+pps_T = pps_T[start:stop]
 
 ser_dTm = [ser_Tm[1+i]-ser_Tm[i] for i in range(len(ser_Tm)-1)] 	# difference in time between measured serials
 ser_Tf = [0]*len(ser_Tm) 			 	 	 	  	 	# Kalman filtered time, with resets

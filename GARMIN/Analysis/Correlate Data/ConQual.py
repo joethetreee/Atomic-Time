@@ -14,7 +14,7 @@ import numpy as np
 import matplotlib as mplt
 import matplotlib.pyplot as plt
 from scipy.stats.stats import pearsonr
-filename = "GARNMEA20160126_021344ChckdCor"
+filename = "GARNMEA20160131_190024ChckdCor"
 
 oset_GGA = 1 				# offset of GGA sentence
 oset_PPS = 2 				# offset of PPS sentence
@@ -112,7 +112,7 @@ plt.title("PPS-serial difference with satellite number")
 plt.ylabel("difference in time / ms")
 plt.xlabel("Samples (thousands)")
 
-print(pearsonr(ppsser_dT, qArr))
+print("pearson:",pearsonr(ppsser_dT, qArr))
 
 saveFileName = filename+"SerPPS_satNum"
 plt.savefig("../../Results/"+saveFileName+".png",dpi=400)

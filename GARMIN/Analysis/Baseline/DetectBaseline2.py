@@ -9,6 +9,18 @@ import KalmanFilter as klm
 import numpy as np
 import matplotlib.pyplot as plt
 
+filename = "GARNMEA20160131_190024ChckdCor"
+
+start = 0
+stop = 150
+
+utm = 250 					# uncertainty in measured time
+utp = 0.5 					# uncertainty in predicted time
+avg_T = 1000 				# average time
+
+countTarget = 10				# target number of ser_dTf on one side of avg_T before detecting new phase
+count = 0 					# number of ser_dTf on one side of avg_T (+: above, -: below)
+
 def KalBaseline(xm,up,um,A=1,B=1,H=1, countTY=5, countTN=10):
 	""" Input variables
 	returns (xf,uf)
@@ -124,19 +136,14 @@ def KalBaseline(xm,up,um,A=1,B=1,H=1, countTY=5, countTN=10):
 		if (jCur >= length):
 			return (xb,ub,ib,xf1,xf2)
 
-filename = "GPSMIL33ChckdCor"
-utm = 250 					# uncertainty in measured time
-utp = 0.5 					# uncertainty in predicted time
-avg_T = 1000 				# average time
-
-countTarget = 10				# target number of ser_dTf on one side of avg_T before detecting new phase
-count = 0 					# number of ser_dTf on one side of avg_T (+: above, -: below)
-
 # extract data into arrays
 
-contents = open(filename+".txt", mode='r')
+contents = open("../../Results/"+filename+".txt", mode='r')
 contentsTxt = contents.readlines()
 contents.close()
+
+start = max(0,start)
+stop = min(len(contentsTxt),stop)
 
 ser_Tm = [0]*len(contentsTxt)
 pps_T = [0]*len(contentsTxt)
@@ -150,8 +157,8 @@ for i in range(len(contentsTxt)):
 		pps_T[j] = int(line[commaLoc+1:])
 		j += 1
 		
-ser_Tm = ser_Tm[0:10]
-pps_T = pps_T[0:10]
+ser_Tm = ser_Tm[start:stop]
+pps_T = pps_T[start:stop]
 
 (serb_T,serb_U,serb_i,serf1_T,serf2_T) = KalBaseline(ser_Tm,0.5,150,1,1,1,5,10)
 
