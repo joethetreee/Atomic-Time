@@ -10,6 +10,10 @@ Receive Arduino data and save to txt file
 import serial
 import time
 
+filenamePrefix = "GARNMEA"
+failT = 3
+failC = 0
+
 	
 def clearBuffer( ard ):
 	""" Clears 1024 bytes from 'ard' serial buffer.
@@ -26,7 +30,7 @@ def clearBuffer( ard ):
 		
 	return True
 
-t_timeout = 2
+t_timeout = 3
 ard = None
 
 try:
@@ -39,7 +43,7 @@ if ard:
 	print("Waiting for Arduino to initialise...")
 	# sleep so that the arduino can initialise (it resets upon serial opening)
 	
-	filename = "ardTim"+time.strftime("%Y%m%d")+"_"+time.strftime("%H%M%S")
+	filename = filenamePrefix+time.strftime("%Y%m%d")+"_"+time.strftime("%H%M%S")
 	file = open(filename+".txt","w")
 	
 	print("created file")
@@ -50,12 +54,29 @@ if ard:
 	print("Measuring...\n")
 	
 	while (True):
-		data = ard.readline().decode()
-		data = str(data[:-1])
+		try:
+			data = ard.readline().decode()
+			data = str(data[:-1])
+		except UnicodeDecodeError:
+			data = "Decoding error"
+			
 		print (data)
 		file.write(data)
+		file.write("\n")
 		if (len(data)<2):
-			break
+			failC += 1
+			print("failed: ", data)
+			if (len(data)>0):
+				print("->",int(data[0]))
+			ard.close()
+			try:
+				ard = serial.Serial('COM3', 9600, timeout = t_timeout)
+			except serial.SerialException as err:
+				ard.close()
+				file.close()
+				print(err)
+		else: failC = 0
+		if (failC>=failT): break
 	print("Closing")
 	ard.close()
 		
