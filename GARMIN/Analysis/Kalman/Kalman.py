@@ -20,7 +20,7 @@ import numpy as np
 import matplotlib as mplt
 import matplotlib.pyplot as plt
 import KalmanFilter as klm
-filename = "GARNMEA20160126_021344ChckdCor"
+filename = "GARNMEA20160131_190024ChckdCor"
 
 # extract data into arrays
 
@@ -41,7 +41,7 @@ for i in range(len(contentsTxt)):
 		j += 1
 		
 start = 0		
-end = 2000
+end = j
 ser_T = ser_T[start:end]
 pps_T = pps_T[start:end]
 

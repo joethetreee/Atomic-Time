@@ -1,8 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
-filename = "GPSMIL33ChckdCor"
+filename = "GARNMEA20160131_150715ChckdCor"
 
-contents = open(filename+".txt", mode='r')
+contents = open("../../Results/"+filename+".txt", mode='r')
 contentsTxt = contents.readlines()
 contents.close()
 

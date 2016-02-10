@@ -11,7 +11,7 @@ import numpy as np
 import matplotlib as mplt
 import matplotlib.pyplot as plt
 from scipy.stats.stats import pearsonr
-filename = "GARNMEA20160126_021344ChckdCor"
+filename = "GARNMEA20160131_190024ChckdCor"
 normalise = False
 
 oset_GGA = 1 				# offset of GGA sentence
@@ -149,7 +149,7 @@ for j in range(len(ppsser_dT_)):
 		
 	ser_leg[j] ,= plt.plot(binMids, binVals, color=plt.cm.gist_rainbow(qTypesNZ[j]))
 	medianArr[j] = binMids[Median(binVals)]
-print(pearsonr(medianArr, qTypes))
+print("pearsonMedian:",pearsonr(medianArr, qTypes))
 	
 	
 plt.title("Dist. of PPS-serial difference by satellite number")
@@ -169,4 +169,4 @@ plt.savefig("../../Results/"+saveFileName+".svg")
 
 plt.show()
 
-print(pearsonr(ppsser_dT, qArr))
+print("pearson:",pearsonr(ppsser_dT, qArr))

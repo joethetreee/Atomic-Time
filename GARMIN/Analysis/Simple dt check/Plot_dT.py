@@ -20,7 +20,7 @@ import numpy as np
 import matplotlib as mplt
 import matplotlib.pyplot as plt
 
-filename = "GARNMEA20160126_021344ChckdCor"	
+filename = "GARNMEA20160131_190024ChckdCor"	
 
 contents = open("../../results/" + filename + ".txt", mode='r')
 contentsTxt = contents.readlines()
@@ -42,7 +42,7 @@ for i in range(len(ser_T)):
 		
 		
 start = 0
-end = 10000
+end = j
 end = min(end, j)
 ser_T = ser_T[start:end]
 pps_T = pps_T[start:end]

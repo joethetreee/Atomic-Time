@@ -3,7 +3,7 @@
 removes failed data entries
 """
 
-filename = "GARNMEA20160126_021344"
+filename = "GARNMEA01"
 linStart = ["$GPRMC","$GPGGA","t"] 		 	 	# start of each line
 
 contents = open("../../Results/"+filename+".txt", mode='r')
