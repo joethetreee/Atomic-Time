@@ -16,8 +16,8 @@ filename = "GPSMIL12ChckdCor"
 normalise = False
 
 oset_GGA = 0 				# offset of GGA sentence
-oset_PPS = 2 				# offset of PPS sentence
-period = 3	 				# number of lines in each data set
+oset_PPS = 1 				# offset of PPS sentence
+period = 2	 				# number of lines in each data set
 qCommaIndex = 7				# number of commas in GGA line before data
 
 contents = open("../../Results/"+filename+".txt", mode='r')
@@ -69,6 +69,8 @@ plt.plot(binMids, binVals, color = "black")
 plt.title("Distribution of consecutive serial time differences")
 plt.xlabel("Time difference /ms")
 plt.ylabel("Probability density")
+plt.annotate("Average: "+str(round(np.average(serser_dT),1))+" ms;  Std dev: "+
+		str(int(round(np.std(serser_dT),0)))+" ms", xy=(0.05, 0.95), xycoords='axes fraction')
 plt.savefig("../../Results/"+filename+"serser_dT_dist.png", dpi=400)
 plt.savefig("../../Results/"+filename+"serser_dT_dist.svg")
 plt.show()
@@ -79,6 +81,8 @@ plt.plot(binMids, binVals, color = "black")
 plt.title("Distribution of PPS-serial time differences")
 plt.xlabel("Time difference /ms")
 plt.ylabel("Probability density")
+plt.annotate("Average: "+str(int(round(np.average(ppsser_dT),0)))+" ms;  Std dev: "+
+		str(int(round(np.std(ppsser_dT),0)))+" ms", xy=(0.05, 0.95), xycoords='axes fraction')
 plt.savefig("../../Results/"+filename+"ppsser_dT_dist.png", dpi=400)
 plt.savefig("../../Results/"+filename+"ppsser_dT_dist.svg")
 plt.show()
@@ -86,8 +90,10 @@ plt.show()
 fig = plt.figure(figsize=(10,6))
 (binVals, binMids) = GenerateDist(ppspps_dT, 990, 1010, 1)
 plt.plot(binMids, binVals, color = "black")
-plt.title("Distribution time between consecutive serial messages")
+plt.title("Distribution time between consecutive PPS signals")
 plt.xlabel("Time difference /ms")
 plt.ylabel("Probability density")
+plt.annotate("Average: "+str(round(np.average(ppspps_dT),2))+" ms;  Std dev: "+
+		str(round(np.std(ppspps_dT),2))+" ms", xy=(0.05, 0.95), xycoords='axes fraction')
 plt.savefig("../../Results/"+filename+"ppspps_dT_dist.png", dpi=400)
 plt.savefig("../../Results/"+filename+"ppspps_dT_dist.svg")

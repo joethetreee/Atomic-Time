@@ -40,8 +40,12 @@ for i in range(len(ser_T)):
 		pps_T[j] = int(line[commaLoc+1:])
 		j += 1
 		
-ser_T = ser_T[:j]
-pps_T = pps_T[:j]
+		
+start = 0
+end = 10000
+end = min(end, j)
+ser_T = ser_T[start:end]
+pps_T = pps_T[start:end]
 
 # find quality types in data
 	
@@ -73,8 +77,8 @@ plt.ylabel("Time difference /ms")
 plt.xlim(0,len(serser_dT))
 axes = plt.axes()
 axes.yaxis.set_major_formatter(y_formatter)
-plt.savefig("../../Results/"+filename+"serser_dT.png", dpi=400)
-plt.savefig("../../Results/"+filename+"serser_dT.svg")
+plt.savefig("../../Results/"+filename+"serser_dT("+str(start)+"-"+str(end)+").png", dpi=400)
+plt.savefig("../../Results/"+filename+"serser_dT("+str(start)+"-"+str(end)+").svg")
 
 fig = plt.figure(figsize=(10,6))
 plt.scatter(range(0,len(ppsser_dT),1),ppsser_dT, color="k", s=2, linewidth=0)
@@ -86,8 +90,8 @@ plt.ylim(int(min(ppsser_dT)/20)*20, int(max(ppsser_dT)/20+1)*20)
 plt.ylim(0,1000)
 axes = plt.axes()
 axes.yaxis.set_major_formatter(y_formatter)
-plt.savefig("../../Results/"+filename+"ppsser_dT.png", dpi=400)
-plt.savefig("../../Results/"+filename+"ppsser_dT.svg")
+plt.savefig("../../Results/"+filename+"ppsser_dT("+str(start)+"-"+str(end)+").png", dpi=400)
+plt.savefig("../../Results/"+filename+"ppsser_dT("+str(start)+"-"+str(end)+").svg")
 
 fig = plt.figure(figsize=(10,6))
 plt.scatter(range(0,len(ppspps_dT),1),ppspps_dT, color="k", s=2, linewidth=0)
@@ -98,6 +102,6 @@ plt.xlim(0,len(ppspps_dT))
 y_formatter = mplt.ticker.ScalarFormatter(useOffset=False)
 axes = plt.axes()
 axes.yaxis.set_major_formatter(y_formatter)
-plt.savefig("../../Results/"+filename+"ppspps_dT.png", dpi=400)
-plt.savefig("../../Results/"+filename+"ppspps_dT.svg")
+plt.savefig("../../Results/"+filename+"ppspps_dT("+str(start)+"-"+str(end)+").png", dpi=400)
+plt.savefig("../../Results/"+filename+"ppspps_dT("+str(start)+"-"+str(end)+").svg")
 plt.show()

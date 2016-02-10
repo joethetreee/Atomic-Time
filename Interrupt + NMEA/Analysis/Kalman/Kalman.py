@@ -20,7 +20,7 @@ import numpy as np
 import matplotlib as mplt
 import matplotlib.pyplot as plt
 import KalmanFilter as klm
-filename = "GPSMIL33ChckdCor"
+filename = "GPSMIL37ChckdCor"
 
 # extract data into arrays
 
@@ -97,7 +97,7 @@ plt.xlim(min(xplot),max(xplot))
 plt.ylim(yLow,yHi)
 plt.title("PPS Serial difference using Kalman filter")
 plt.xlabel("Sample")
-plt.ylabel("Time difference (ms)")
+plt.ylabel("Time difference / ms")
 lgndh = plt.legend([ser_ppsser,ser_ppsserE],["Raw","Kalman"])
 lgndh.legendHandles[0]._sizes = [30]
 lgndh.legendHandles[1]._sizes = [30]
@@ -123,13 +123,13 @@ plt.xlim(min(xplot),max(xplot))
 plt.ylim(yLow,yHi)
 plt.title("Consecutive serial time difference using Kalman filter")
 plt.xlabel("Sample")
-plt.ylabel("Time difference (ms)")
+plt.ylabel("Time difference / ms")
 lgndh = plt.legend([ser_serser,ser_serEserE],["Raw","Kalman"])
 lgndh.legendHandles[0]._sizes = [30]
 lgndh.legendHandles[1]._sizes = [30]
 params = {'legend.fontsize': 18}
 plt.rcParams.update(params)    # the legend text fontsize
-plt.annotate("std dev "+str(int(round(np.std(ppsser_dT),0)))+
-	 " --> "+str(int(round(np.std(serEserE_dT),0)))+" ms", xy=(0.05, 0.95), xycoords='axes fraction')
+plt.annotate("std dev "+str(int(round(np.std(serser_dT),0)))+
+	 " --> "+str(round(np.std(serEserE_dT),1))+" ms", xy=(0.05, 0.95), xycoords='axes fraction')
 plt.savefig("../../Results/"+filename+"serserKalman("+str(start)+"-"+str(end)+").png",dpi=400)
 plt.savefig("../../Results/"+filename+"serserKalman("+str(start)+"-"+str(end)+").svg")

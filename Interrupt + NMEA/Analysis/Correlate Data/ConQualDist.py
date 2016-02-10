@@ -10,12 +10,13 @@ plot based on number of satellites
 import numpy as np
 import matplotlib as mplt
 import matplotlib.pyplot as plt
-filename = "GPSMIL14ChckdCor"
+from scipy.stats.stats import pearsonr
+filename = "GPSMIL12ChckdCor"
 normalise = False
 
 oset_GGA = 0 				# offset of GGA sentence
-oset_PPS = 2 				# offset of PPS sentence
-period = 3	 				# number of lines in each data set
+oset_PPS = 1 				# offset of PPS sentence
+period = 2 				# number of lines in each data set
 qCommaIndex = 7				# number of commas in GGA line before data
 
 
@@ -25,6 +26,15 @@ def ColArray(N):
 	for i in range(len(colours)):
 		colours[i] = plt.cm.hot(i)
 	return colours
+	
+
+def Median(data):
+	tot = sum(data)
+	tot_=0
+	for i in range(len(data)):
+		tot_ += data[i]
+		if (tot_>=tot/2):
+			return i
 	
 
 contents = open("../../Results/"+filename+".txt", mode='r')
@@ -113,7 +123,10 @@ txt_leg = [str(i) for i in qTypes]
 # plot a scatter plot so we can get our colours for the colour bar (can't do with plt.plot); discard
 cbarPlot = plt.scatter(range(0,len(ppsser_dT),1),ppsser_dT,c=qArrNZ, cmap=plt.cm.gist_rainbow,linewidth='0', s=8)
 plt.clf()
+fig = plt.figure(figsize=(11,6))
+mplt.rcParams.update({'font.size': 15})
 
+medianArr = [0]*len(ppsser_dT_)
 for j in range(len(ppsser_dT_)):
 	histData = ppsser_dT_[j]
 	binWidth = (binMax - binMin)/binNum
@@ -133,14 +146,15 @@ for j in range(len(ppsser_dT_)):
 		binMids[i] = (binEdges[i]+binEdges[1+i])/2.0
 		
 	print(qTypes[j])
-	print(plt.cm.gist_rainbow(qTypesNZ[j]))
 		
 	ser_leg[j] ,= plt.plot(binMids, binVals, color=plt.cm.gist_rainbow(qTypesNZ[j]))
+	medianArr[j] = binMids[Median(binVals)]
+print(pearsonr(medianArr, qTypes))
 	
-plt.title("PPS-serial time difference distribution by number of satellites")
+	
+plt.title("Dist. of PPS-serial difference by satellite number")
 plt.xlabel("Time difference /ms")
 plt.ylabel("Frequency")
-mplt.rcParams.update({'font.size': 18})
 
 cbarTicksTemp = np.linspace(min(qTypesNZ), max(qTypesNZ), len(qTypesNZ))
 cbar = plt.colorbar(cbarPlot, ticks=cbarTicksTemp)
@@ -149,4 +163,10 @@ print (cbarTicksTemp)
 print(cbarTicksNew)
 cbar.ax.set_yticklabels(cbarTicksNew)  # horizontal colorbar
 
+saveFileName = filename+"SerPPS_satNum_dist"
+plt.savefig("../../Results/"+saveFileName+".png",dpi=400)
+plt.savefig("../../Results/"+saveFileName+".svg")
+
 plt.show()
+
+print(pearsonr(ppsser_dT, qArr))
