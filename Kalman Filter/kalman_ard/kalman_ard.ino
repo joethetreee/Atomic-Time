@@ -19,20 +19,21 @@ int ppsWriteNow = 0;
 bool dataEnd = false;
 bool firstLoop = true;
 int fill = 1;
+bool firstSer = true;
 
 // Kalman filter variables
-int arduinoUncertainty = 1;
-int gpsUncertainty = 500;
-int arduinoSecond = 1001;
+unsigned long arduinoUncertainty = 1;
+unsigned long gpsUncertainty = 500;
+unsigned long arduinoSecond = 1001;
 
-int A = 1;
-int B = 1;
-int H = 1;
-int Q = 1;
-int R = arduinoUncertainty + gpsUncertainty;
+unsigned long A = 1;
+unsigned long B = 1;
+unsigned long H = 1;
+unsigned long Q = 1;
+unsigned long R = arduinoUncertainty + gpsUncertainty;
 
-unsigned long currentStateEstimate;
-unsigned long currentProbEstimate = arduinoUncertainty;
+float currentStateEstimate;
+float currentProbEstimate = gpsUncertainty;
 float innovation;
 float innovationCovariance;
 float kalmanGain;
@@ -69,7 +70,6 @@ void setup() {
   Serial.println("Kalman Filter 0.1");
   
   pinMode(ledPin, OUTPUT);
-  Blink(ledPin, 1500);
 
   // Start the software serial connection
   gpsSerial.begin(9600);
@@ -82,11 +82,21 @@ void setup() {
 
 void loop() {
   if(stepKalman) {
-    stepKalman = false;
-    filterStep(1000, milliLast);
-    Serial.print(milliLast);
-    Serial.print(" ");
-    Serial.println(currentStateEstimate);
+    if (firstSer) {
+      currentStateEstimate = milliLast;
+      firstSer = false;
+      stepKalman = false;
+      Serial.println(milliLast);
+    }
+    else  {
+      stepKalman = false;
+      filterStep(1000, milliLast);
+      Serial.print(milliLast);
+      Serial.print(" ");
+      Serial.print((unsigned long)(currentStateEstimate+0.5));
+      Serial.print(" ");
+      Serial.println(currentProbEstimate);
+    }
   }
   
   while(gpsSerial.available()) {
@@ -129,7 +139,7 @@ void loop() {
 void getInputTime() {
   milli = millis();
   dt = milli - milliLast;
-  if(dt > 250) {
+  if(dt > 500) {
     milliLast = milli;
     stepKalman = true;
   }
@@ -143,7 +153,7 @@ void getPPSTime() {
   }
 }
 
-void filterStep(int controlVector, int measurementVector) {
+void filterStep(int controlVector, unsigned long measurementVector) {
   // Prediction
   predictedStateEstimate = A * currentStateEstimate + B * controlVector;
   predictedProbEstimate = A * currentProbEstimate * A + Q;
