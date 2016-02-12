@@ -1,22 +1,16 @@
 #include <AltSoftSerial.h>
 #include <SoftwareSerial.h>
-#include <SPI.h>
-#include "SdFat.h"
 
 byte pinRX = 2;
 byte pinTX = 4;
 byte pinPPS = 3;
 
+SoftwareSerial gps(pinRX,pinTX,true);
+//AltSoftSerial gps(pinRX,pinTX,true);
+unsigned char dataByte;
 int boadCur = 9600;
-#define chipSelect 10
-#define ledPin 13
 
-SdFat sd;
-SdFile logfile;
 
-SoftwareSerial gps(pinRX, pinTX, true);
-
-char dataByte = 0;
 byte sentenceNum = 2;
 char* sentencePrefixTerm = "$GPGGA";    // this sentence is the last one in the list
 char* sentencePrefixRMC = "$GPRMC";
@@ -28,6 +22,7 @@ unsigned char dataPos;
 bool willSend = false;
 byte senLast = 0; // most recent sentence type to be identified
 
+volatile uint32_t serTEndLast = millis();           // used to fix error which caused ppsser time to be ~500 rather than ~400 ms (serial interrupt may have caught end of message?)
 volatile uint32_t serTLast = millis();
 volatile uint32_t serDt = 0;
 volatile uint32_t serMilli = millis();
@@ -37,66 +32,20 @@ volatile uint32_t ppsMilli = millis();
 volatile uint32_t ppsMilliLast = millis();
 bool firstNonLoop = false;
 bool firstLoop = true;
+bool firstMessageSet = true;                       // don't send the first one -- usually wrong
 bool reading = true;
 bool senTerm = false;
 
 
-
-// blink out an error code
-void error(uint8_t errno) {           // note: blink code won't work after sd.begin() because SPI disables pin13 LED!!! We must end SPI first
-  SPI.end();
-  while(1) {
-    uint8_t i;
-    for (i=0; i<errno; i++) {
-      Blink(ledPin, 100);
-    }
-    for (i=errno; i<10; i++) {
-      delay(200);
-    }
-  }
-}
-
-void Blink(byte pin, int t)
-{
-  for (byte k=0; k<2; k++)
-  {
-    digitalWrite(pin, k);
-    delay(t);
-  }
-}
 
 void setup()
 {
   pinMode(pinRX, INPUT);
   pinMode(pinTX, OUTPUT);
   pinMode(pinPPS, INPUT);
-
-  dataPos = 0;
-  pinMode(ledPin, OUTPUT);
-  pinMode(chipSelect, OUTPUT);
-
-  if (!sd.begin(chipSelect, SPI_FULL_SPEED)) {      // if you're using an UNO, you can use this line instead
-    error(2);
-  }
-  char filename[16];
-  strcpy(filename, "GPSNMEA00.TXT");
-  for (uint8_t i = 0; i < 100; i++) {
-    filename[7] = '0' + i/10;
-    filename[8] = '0' + i%10;
-    // create if does not exist, do not open existing, write, sync after write
-    if (! sd.exists(filename)) {
-      break;
-    }
-  }
-
-  if (!logfile.open(filename, O_RDWR | O_CREAT | O_AT_END)) {
-    error(3);
-  }
-  logfile.flush();
-
-  Serial.begin(9600);
-  
   gps.begin(boadCur);
+  Serial.begin(9600);
+  dataPos = 0;
 }
 
 void loop()
@@ -122,14 +71,13 @@ void loop()
     {
       while (dataByte != 0xA)
         dataByte = gps.read();
-
       if (willSend)
       {
         dataGP[dataPos] = '\n';
         dataGP[dataPos+1] = '\0';
         willSend = false;
 
-        logfile.print(dataGP);
+        Serial.print(dataGP);
       }
       dataPos = 0;
       reading = false;
@@ -165,12 +113,17 @@ void loop()
   {
     if (firstNonLoop && !reading && senTerm)                 // check whether we have just received final sentence in list -- then enable interrupts
     {
-      logfile.print('t');
-      logfile.print(serMilliLast);
-      logfile.print(',');
-      logfile.print(ppsMilliLast);
-      logfile.print("\n");
-      logfile.flush();
+      if (firstMessageSet)
+        firstMessageSet = false;
+      else
+      {
+        Serial.print('t');
+        Serial.print(serMilliLast);
+        Serial.print(',');
+        Serial.print(ppsMilliLast);
+        Serial.print("\n");
+      }
+      serTEndLast = millis();
     }
     if (firstNonLoop && !reading)
     {
@@ -185,7 +138,7 @@ void loop()
 void getSerTime() {
   serMilli = millis();
   serDt = serMilli - serMilliLast;
-  if(serDt > 50) {
+  if(serDt > 250 && serMilli-serTEndLast>20) {
     serMilliLast = serMilli;
   }
 }
@@ -193,7 +146,7 @@ void getSerTime() {
 void getPPSTime() {
   ppsMilli = millis();
   ppsDt = ppsMilli - ppsMilliLast;
-  if(ppsDt > 50) {
+  if(ppsDt > 250) {
     ppsMilliLast = ppsMilli;
   }
 }
