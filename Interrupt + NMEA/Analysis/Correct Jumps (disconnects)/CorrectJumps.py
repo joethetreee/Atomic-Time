@@ -21,9 +21,9 @@ filename = "GPSMIL37Chckd"
 oset_GGA = 0 			# offset line for GGA
 oset_PPS = 2 			# offset line for PPS line
 
-period = 1 				# number of lines for each second of data (will be computed)
+period = 3 				# number of lines for each second of data (will be computed)
 
-contents = open(filename+".txt", mode='r')
+contents = open("../../Results/"+filename+".txt", mode='r')
 contentsTxt = contents.readlines()
 contents.close()
 
@@ -48,12 +48,17 @@ while (CheckLineStart(contentsTxt[oset_GGA+period],"$GPGGA")==False):
 print(period)
 
 # remove data without a fix
+#contentsTxt = contentsTxt[40002:50001]
 contentsTxtCor = [0]*len(contentsTxt)
 i = 0
 j = 0
 conPrev = False 						# whether the previous dataset had a connection
 delete = False 					 	# whether we must delete the current entry
-while (i<len(contentsTxt)):	 		 	# while loop because for loop does not work as in C/C++ when modifying iterator in-loop!!!
+ser_Prev = 0 							# previous serial time
+pps_Prev = 0							# previous pps time
+while (i<len(contentsTxt)-period+1):	 		 	# while loop because for loop does not work as in C/C++ when modifying iterator in-loop!!!
+	print (i)
+	print (contentsTxt[i+oset_GGA])
 	if (CheckLineStart(contentsTxt[i+oset_GGA],"$GPGGA")==True):
 		commaLoc = 0
 		for commaNum in range(6): 	 	# find quality value (fix/no fix)
@@ -61,8 +66,24 @@ while (i<len(contentsTxt)):	 		 	# while loop because for loop does not work as 
 		commaLoc2 = commaLoc+contentsTxt[i+oset_GGA][commaLoc:].index(',')
 		qVal = int(contentsTxt[i+oset_GGA][commaLoc:commaLoc2])
 		if (qVal == 0):
-			#print("qVal", i, contentsTxt[i+oset_GGA])
+			print("qVal", i, contentsTxt[i+oset_GGA])
 			delete = True
+	if (CheckLineStart(contentsTxt[i+oset_PPS],"t")==True):
+		commaLoc = contentsTxt[i+oset_PPS].index(',')
+		ser_t = int(contentsTxt[i+oset_PPS][1:commaLoc])
+		pps_t = int(contentsTxt[i+oset_PPS][commaLoc+1:])
+		
+		if (pps_t == 0):
+			print("pps_t", i, contentsTxt[i+oset_PPS])
+			delete = True
+		elif (pps_t == pps_Prev):
+			print("pps_t", i, contentsTxt[i+oset_PPS])
+			delete = True
+		elif (ser_t == ser_Prev):
+			print("ser_t", i, contentsTxt[i+oset_PPS])
+			delete = True
+		ser_Prev = ser_t
+		pps_Prev = pps_t
 	
 	if (not delete and not conPrev): 		# check if the conctn is new -- check & remove new conctn data where the is no new pps since
 		commaLoc = 1+contentsTxt[i+oset_PPS][1:].index(",")
@@ -77,10 +98,11 @@ while (i<len(contentsTxt)):	 		 	# while loop because for loop does not work as 
 		delete = False
 		conPrev = False
 	else:
-		contentsTxtCor[j] = contentsTxt[i]
-		j += 1
-		i += 1
-		conPrev = True
+		for k in range(period):
+			contentsTxtCor[j] = contentsTxt[i]
+			j += 1
+			i += 1
+			conPrev = True
 
 # truncate array to the end of the data		
 contentsTxtCor = contentsTxtCor[:j]
@@ -132,7 +154,8 @@ if (nif<0):
 	nif += 60*60*24
 	
 	
-ppsAvg = (tf-ti) / nif
+#ppsAvg = (tf-ti) / nif
+ppsAvg = 1000
 
 print ("ti, tf, ni, nf, nif, ppsAvg",ti, tf, ni, nf, nif, ppsAvg)
 
@@ -145,8 +168,6 @@ serCur = 0 							 	# time of serial for previous line
 serPrev = 0 							# time of serial for previous line
 ggaCur = 0 								# time of GGA for current line
 ggaPrev = 0 							# time of GGA for previous line
-cor_pps = 0 							# correction for jumps based on difference in pps
-cor_ser = 0 							# correction for serial based on pps jumps
 for i in range(0, len(contentsTxtCor)-1, period):
 	#print("->i:",i)	
 	
@@ -172,7 +193,7 @@ for i in range(0, len(contentsTxtCor)-1, period):
 	serCur = int(line[1:commaLoc-1])
 	ppsCur = int(line[commaLoc:])
 	
-	if (i==0): 							# go back to start of loop if i is 0 (need to take diff between successive data)
+	if (i==0): 							 	# go back to start of loop if i is 0 (need to take diff between successive data)
 		continue
 	
 	ggad = ggaCur-ggaPrev 						# difference in seconds between messages
@@ -182,38 +203,23 @@ for i in range(0, len(contentsTxtCor)-1, period):
 	pps_dt = int(ppsCur-ppsPrev)
 	ser_dt = int(serCur-serPrev)
 	
-	# work out whether we need to correct serial or not
-	# there are two kinds of correction here:
-	# i) removed section due to connection loss; we perform time shift to "cut out" connection loss -- modify pps and ser times
-	# ii) pps has not updated but serial has; we only modify pps
+	ppsser_dt = serCur-ppsCur
+	ppsser_mil = int(ppsser_dt/1000)*1000 		# get difference rounded to nearest thousand
+
+	#print("->",i,ppsCur,serCur,  "dt",pps_dt,ser_dt,ppsser_dt,ppsser_mil)
 	
-	correctSer_PPS = False 				# whether we need to correct serial based on pps
-	if (int(round(ser_dt/1000,0))!=1):
-		correctSer_PPS = True
-		
-#	if (ggad!=1 and round(ser_dt/1000,1)!=1 and !correctSer_PPS):
-#		cor_pps += (1-ggad)*1000
-		
-	if (int(round(pps_dt/1000,0))!=1):
-		cor_pps += int(ppsAvg-pps_dt)
-		if (correctSer_PPS):
-			if (int(round(pps_dt,-3))!=1000): 		# if the PPS was not updated correctly
-				cor_ser += int(ppsAvg-round(ser_dt,-3))				
-			else: 								# if the PPS was updated correctly (in original file)
-				cor_ser += int(ppsAvg-pps_dt)
-		print("jump", i, pps_dt, serCur, ppsCur, ppsCur+cor_pps, serCur+cor_ser, correctSer_PPS)
-		
-	elif (int(round(ser_dt/1000,0))!=1):
-		cor_ser += int(ppsAvg-round(ser_dt,-3))
-		print("~jump", i, ser_dt, serPrev, serCur, serCur+cor_ser)
+	ppsCur += int(int(1-round(pps_dt,-3)/1000)*ppsAvg)		# correct by however much the pps difference varies from 1000
+	serCur = ppsCur + ppsser_dt - ppsser_mil
+	
+	#print(ppsCur,serCur)
 		
 	#print("ggad: ",ggad)
 	#print("dt_pps: ",dt_pps)
 	
-	contentsTxtCor[oset_PPS+i] = "t"+str(serCur+cor_ser)+","+str(ppsCur+cor_pps)+"\n"
+	contentsTxtCor[oset_PPS+i] = "t"+str(serCur)+","+str(ppsCur)+"\n"
 
 
-contents = open(filename+"Cor.txt", mode='w')		# open/create file to write
+contents = open("../../Results/"+filename+"Cor.txt", mode='w')		# open/create file to write
 
 for i in range(len(contentsTxtCor)):
 	contents.write(str(contentsTxtCor[i]))
