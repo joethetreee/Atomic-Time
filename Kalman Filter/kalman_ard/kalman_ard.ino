@@ -6,6 +6,8 @@
 #include <SoftwareSerial.h>
 #include <avr/sleep.h>
 
+#define ppsOutPin 5
+
 SoftwareSerial gpsSerial(8, 7);
 
 volatile uint32_t milli = millis();
@@ -13,7 +15,8 @@ volatile uint32_t milliLast = millis();
 volatile uint32_t dt = 0;
 bool firstLoop = true;
 bool firstSer = true;
-bool sent = false;
+bool outPPSStart = false;
+bool outPPSEnd = false;
 
 // NMEA Parsing
 int fill = 1;
@@ -35,7 +38,8 @@ unsigned long Q = 1;
 unsigned long R = arduinoUncertainty + gpsUncertainty;
 
 float currentStateEstimate;
-unsigned long currentStateEstimateULong;
+unsigned long currentStateEstimateULong500;
+unsigned long currentStateEstimateULong600;
 float currentProbEstimate = gpsUncertainty;
 float innovation;
 float innovationCovariance;
@@ -58,6 +62,7 @@ void setup() {
   gpsSerial.begin(9600);
 
   pinMode(3, INPUT);
+  pinMode(ppsOutPin, OUTPUT);
   attachInterrupt(digitalPinToInterrupt(3), getInputTime, RISING);
 }
 
@@ -73,7 +78,7 @@ void loop() {
     else  {
       stepKalman = false;
       filterStep(1000, milliLast);
-      sent = false;
+      outPPSStart = false;
       /*Serial.print(milliLast);
       Serial.print(" ");
       Serial.print(currentStateEstimateULong);
@@ -153,19 +158,29 @@ void filterStep(int controlVector, unsigned long measurementVector) {
 
   // Converts the state estimate to a unsigned long and adds 500 milliseconds to allow for signals
   // arriving late.
-  currentStateEstimateULong = (unsigned long)(currentStateEstimate + 0.5) + 500;
+  currentStateEstimateULong500 = (unsigned long)(currentStateEstimate + 0.5) + 500;
+  currentStateEstimateULong600 = currentStateEstimateULong500 + 100;
 }
 
 // Function called once per millisecond
 SIGNAL(TIMER0_COMPA_vect) {
-  if(sent == false) {
-    if(millis() >= currentStateEstimateULong) {
-      sent = true;
-      Serial.print(millis() - currentStateEstimateULong);
+  if(outPPSStart == false) {
+    if(millis() >= currentStateEstimateULong500) {
+      outPPSStart = true;
+      outPPSEnd = false;
+      digitalWrite(ppsOutPin, HIGH);
+      Serial.print(millis() - currentStateEstimateULong500);
       Serial.print(" ");
-      Serial.print(currentStateEstimateULong);
+      Serial.print(currentStateEstimateULong500);
       Serial.print(" ");
-      Serial.println(currentStateEstimateULong >= milliLast); 
+      Serial.println(currentProbEstimate);
+    }
+  }
+
+  if(outPPSEnd == false) {
+    if(millis() >= currentStateEstimateULong600) {
+      outPPSEnd = true;
+      digitalWrite(ppsOutPin, LOW);
     }
   }
 }
