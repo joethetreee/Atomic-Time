@@ -8,15 +8,12 @@
 
 SoftwareSerial gpsSerial(8, 7);
 
-
-// Set the pins used
-#define ledPin 13
-
 volatile uint32_t milli = millis();
 volatile uint32_t milliLast = millis();
 volatile uint32_t dt = 0;
 bool firstLoop = true;
 bool firstSer = true;
+bool sent = false;
 
 // NMEA Parsing
 int fill = 1;
@@ -38,6 +35,7 @@ unsigned long Q = 1;
 unsigned long R = arduinoUncertainty + gpsUncertainty;
 
 float currentStateEstimate;
+unsigned long currentStateEstimateULong;
 float currentProbEstimate = gpsUncertainty;
 float innovation;
 float innovationCovariance;
@@ -51,8 +49,10 @@ bool stepKalman = false;
 void setup() {
   Serial.begin(9600);
   Serial.println("Kalman Filter 0.1");
-  
-  pinMode(ledPin, OUTPUT);
+
+  // Setup Timer0 to call our once-per-millisecond function.
+  OCR0A = 0xAF;
+  TIMSK0 |= _BV(OCIE0A);
 
   // Start the software serial connection
   gpsSerial.begin(9600);
@@ -61,23 +61,25 @@ void setup() {
   attachInterrupt(digitalPinToInterrupt(3), getInputTime, RISING);
 }
 
+
 void loop() {
   if(stepKalman) {
     if (firstSer) {
       currentStateEstimate = milliLast;
       firstSer = false;
       stepKalman = false;
-      Serial.println(milliLast);
+      //Serial.println(milliLast);
     }
     else  {
       stepKalman = false;
       filterStep(1000, milliLast);
-      Serial.print(milliLast);
+      sent = false;
+      /*Serial.print(milliLast);
       Serial.print(" ");
-      Serial.print((unsigned long)(currentStateEstimate+0.5));
+      Serial.print(currentStateEstimateULong);
       Serial.print(" ");
       Serial.print(currentProbEstimate);
-      Serial.print(" ");
+      Serial.print(" ");*/
     }
   }
   
@@ -111,7 +113,7 @@ void loop() {
         nmeaTime[0] = '\0';
         strncpy(nmeaTime, nmea2 + 7, 10);
         nmeaTime[10] = '\0';
-        Serial.println(nmeaTime);
+       // Serial.println(nmeaTime);
 
         count1 = 0;
         count2 = 0;
@@ -148,5 +150,22 @@ void filterStep(int controlVector, unsigned long measurementVector) {
   kalmanGain = predictedProbEstimate * H / innovationCovariance;
   currentStateEstimate = predictedStateEstimate + kalmanGain * innovation;
   currentProbEstimate = (1 - kalmanGain * H) * predictedProbEstimate;
+
+  // Converts the state estimate to a unsigned long and adds 500 milliseconds to allow for signals
+  // arriving late.
+  currentStateEstimateULong = (unsigned long)(currentStateEstimate + 0.5) + 500;
 }
 
+// Function called once per millisecond
+SIGNAL(TIMER0_COMPA_vect) {
+  if(sent == false) {
+    if(millis() >= currentStateEstimateULong) {
+      sent = true;
+      Serial.print(millis() - currentStateEstimateULong);
+      Serial.print(" ");
+      Serial.print(currentStateEstimateULong);
+      Serial.print(" ");
+      Serial.println(currentStateEstimateULong >= milliLast); 
+    }
+  }
+}
