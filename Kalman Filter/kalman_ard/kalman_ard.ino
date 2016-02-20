@@ -24,7 +24,8 @@ int count1 = 0;
 int count2 = 0;
 char nmea1[90];
 char nmea2[90];
-char nmeaTime[12];
+char nmeaTime[11];
+char nmeaTime500[11];
 
 // Kalman filter variables
 unsigned long arduinoUncertainty = 1;
@@ -52,7 +53,7 @@ bool stepKalman = false;
 // Main program
 void setup() {
   Serial.begin(9600);
-  Serial.println("Kalman Filter 0.1");
+  Serial.println("Kalman Filter 0.2");
 
   // Setup Timer0 to call our once-per-millisecond function.
   OCR0A = 0xAF;
@@ -118,7 +119,11 @@ void loop() {
         nmeaTime[0] = '\0';
         strncpy(nmeaTime, nmea2 + 7, 10);
         nmeaTime[10] = '\0';
-       // Serial.println(nmeaTime);
+
+        // Create a copy of the NMEA timestamp
+        strcpy(nmeaTime500, nmeaTime);
+        // Add the 500ms offset
+        nmeaTime500[7] = '5';
 
         count1 = 0;
         count2 = 0;
@@ -173,7 +178,11 @@ SIGNAL(TIMER0_COMPA_vect) {
       Serial.print(" ");
       Serial.print(currentStateEstimateULong500);
       Serial.print(" ");
-      Serial.println(currentProbEstimate);
+      Serial.print(nmeaTime500);
+      Serial.print(" ");
+      Serial.print(char(177));
+      Serial.print(currentProbEstimate);
+      Serial.println("ms");
     }
   }
 
