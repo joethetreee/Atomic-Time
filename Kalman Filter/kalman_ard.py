@@ -79,7 +79,13 @@ avgs = np.zeros(max(numSats) + 1)
 
 for j in range(max(numSats) + 1):
 	if np.any(distroResults[j]):
-		avgs[j] = np.average(np.nonzero(distroResults[j]))
+		# Average of distribution
+		avgs[j] = np.sum(range(len(distroResults[j])) * distroResults[j]) / np.sum(distroResults[j])
+		
+		# Peak of distribution
+		#avgs[j] = np.argmax(distroResults[j])
+		
+		print(avgs[j])
 	else:
 		avgs[j] = 0
 
@@ -101,20 +107,33 @@ filterPPS = KalmanFilter(arduinoUncertainty, gpsUncertainty, tser)
 
 # Apply Kalman filter to data from Interrupt + NMEA dataset.
 while i < len(data) - 1:
+	# Parse data from text file
 	gga = data[i]
 	rmc = data[i + 1]
 	t = data[i + 2]
 	t = t[1:]
 	t = t.split(",")
+	
+	# Serial arrival time
 	tser = int(t[0])
+	
+	# PPS arrival time
 	tpps = int(t[1])
+	
+	# Number of satellites from the GGA message
 	sats = int(gga.split(",")[7])
 	
+	# Do kalman filter step whilst compensating for satellite number delay
 	filterPPS.step(1000, tser - avgs[sats] + avgs[startSats])
+	
+	# Do a standard kalman filter
 	filter.step(1000, tser)
+	
+	# Add results to an array
 	kalResults.append(filter.currentStateEstimate - tpps)
 	kalResultsPPS.append(filterPPS.currentStateEstimate - tpps)
 	
+	# Go to next measurement
 	i += 3
 	
 print("kalResults PPS Compensation stdDev", np.std(kalResultsPPS))
@@ -126,6 +145,7 @@ cmap = cm.gist_rainbow
 # define the bins and normalize
 bounds = np.linspace(min(numSats), max(numSats), max(numSats) - min(numSats) + 1)
 norm = mpl.colors.BoundaryNorm(bounds, cmap.N)
+scalarMap = cm.ScalarMappable(norm = norm, cmap = cmap)
 
 """ Plot the basic kalman filtered PPS deltas """
 fig, ax = plt.subplots(1, 1, figsize = (15, 10))
@@ -140,8 +160,8 @@ ax.set_xlabel("Sample")
 ax.set_ylabel("GPS PPS - Kalman PPS Offset")
 ax.set_xlim(0, len(kalResults))
 ax.set_ylim(150, 350)
-ax.text(1000, 340, "Standard Deviation = " + str(np.std(kalResults)))
-ax.text(1000, 335, "Using GPSMIL37ChckdCor.txt dataset")
+ax.text(0.05, 0.9, "Standard Deviation = " + str(round(np.std(kalResults), 2)) + "ms", transform = ax.transAxes)
+ax.text(0.05, 0.88, "Using GPSMIL37ChckdCor.txt dataset", transform = ax.transAxes)
 ax2.set_ylabel("Number of Connected Satellites", size = 12)
 
 # Plot
@@ -156,13 +176,13 @@ ax2 = fig.add_axes([0.91, 0.1, 0.03, 0.8])
 cb = mpl.colorbar.ColorbarBase(ax2, cmap = cmap, norm = norm, spacing = 'proportional', ticks = bounds, boundaries = bounds, format = '%1i')
 
 # Axis titles
-ax.set_title("Kalman Filtered Predicted PPS with Satellite Time Offset")
+ax.set_title("Kalman Filtered Predicted PPS with Satellite Time Offset Average")
 ax.set_xlabel("Sample")
 ax.set_ylabel("GPS PPS - Kalman PPS Offset")
 ax.set_xlim(0, len(kalResultsPPS))
 ax.set_ylim(150, 350)
-ax.text(1000, 340, "Standard Deviation = " + str(np.std(kalResultsPPS)))
-ax.text(1000, 335, "Using GPSMIL37ChckdCor.txt dataset")
+ax.text(0.05, 0.9, "Standard Deviation = " + str(round(np.std(kalResultsPPS), 2)) + "ms", transform = ax.transAxes)
+ax.text(0.05, 0.88, "Using GPSMIL37ChckdCor.txt dataset", transform = ax.transAxes)
 ax2.set_ylabel("Number of Connected Satellites", size = 12)
 
 # Plot
@@ -170,7 +190,12 @@ ax.scatter(range(len(kalResultsPPS)), kalResultsPPS, c = numSats, cmap = cmap, n
 plt.show()
 
 """ Plot the PPS - Ser distributions """
-fig, ax = plt.subplots(1, 1)
+fig, ax = plt.subplots(1, 1, figsize = (15, 10))
+ax.set_xlim(200, 400)
+ax.set_title("Serial - PPS Time Offset Distribution")
+ax.set_xlabel("Time Offset (ms)")
+ax.set_ylabel("Freqency")
+ax.text(0.05, 0.88, "Using GPSMIL37ChckdCor.txt dataset", transform = ax.transAxes)
 
 # create a second axes for the colorbar
 ax2 = fig.add_axes([0.91, 0.1, 0.03, 0.8])
@@ -178,6 +203,9 @@ cb = mpl.colorbar.ColorbarBase(ax2, cmap = cmap, norm = norm, spacing = 'proport
 
 # Plot
 for i in range(len(distroResults)):
-	ax.scatter(range(len(distroResults[i])), distroResults[i], c = [i] * len(distroResults[i]), cmap = cmap, norm = norm, linewidth = "0", s = 2)
+	c = cmap((i - min(numSats)) * (max(numSats) + 1) / ((max(numSats) - min(numSats) + 1) * 10))
+	ax.plot(range(len(distroResults[i])), distroResults[i], color = c)
+	ax.axvline(avgs[i], c = c)
+	ax.text(avgs[i], 400 - i * 8, str(i), color = c)
 	
 plt.show()
