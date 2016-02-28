@@ -55,6 +55,8 @@ gpsUncertainty = 500
 i = 0
 kalResults = []
 kalResultsPPS = []
+kalFilterPPS = []
+kalFilter = []
 distroResults = np.zeros( (12, 1000) )
 numSats = []
 
@@ -132,12 +134,22 @@ while i < len(data) - 1:
 	# Add results to an array
 	kalResults.append(filter.currentStateEstimate - tpps)
 	kalResultsPPS.append(filterPPS.currentStateEstimate - tpps)
+	kalFilterPPS.append(filterPPS.currentStateEstimate)
+	kalFilter.append(filter.currentStateEstimate)
 	
 	# Go to next measurement
 	i += 3
 	
 print("kalResults PPS Compensation stdDev", np.std(kalResultsPPS))
 print("kalResults stdDev", np.std(kalResults))
+
+# Calculate kalman pps - kalman pps time deltas
+ppsDeltas = np.zeros(1100)
+deltas = np.zeros(1100)
+for k in range(1, len(kalResultsPPS)):
+	ppsDeltas[kalFilterPPS[k] - kalFilterPPS[k - 1]] += 1
+	deltas[kalFilter[k] - kalFilter[k - 1]] += 1
+	
   
 # Set the colour map
 cmap = cm.gist_rainbow
@@ -208,4 +220,19 @@ for i in range(len(distroResults)):
 	ax.axvline(avgs[i], c = c)
 	ax.text(avgs[i], 400 - i * 8, str(i), color = c)
 	
+plt.show()
+
+""" Plot the kalman PPS - kalmanPPS time deltas distribution """
+fig, ax = plt.subplots(1, 1, figsize = (15, 10))
+ax.set_xlim(np.nonzero(ppsDeltas)[0][0] - 5, np.nonzero(ppsDeltas)[0][-1] + 15)
+ax.set_title("Kalman PPS - Kalman PPS Time Delta Distribution")
+ax.set_xlabel("Time Delta (ms)")
+ax.set_ylabel("Freqency")
+ax.text(0.05, 0.88, "Using GPSMIL37ChckdCor.txt dataset", transform = ax.transAxes)
+
+ax.plot(range(len(deltas)), deltas, color = "red", label = "Base Kalman")
+ax.plot(range(len(ppsDeltas)), ppsDeltas, color = "blue", label = "SV Compensated Kalman")
+ax.legend(loc = 0)
+ax.grid()
+
 plt.show()
