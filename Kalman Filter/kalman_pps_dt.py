@@ -6,7 +6,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-file = "kalpps10"
+file = "kalpps12"
 
 f = open("results/{0}".format(file + ".txt"), "r")
 dts = []
@@ -23,6 +23,18 @@ for k in dataIn:
 dts = [str(k) for k in dts]
 data = "\n".join(dts)
 
+# Produce histogram of successive time deltas
+i = 1
+histo = np.zeros(len(dataIn))
+while i < len(dataIn):
+	dataTemp = dataIn[i].split(",")
+	time2 = int(dataTemp[0])
+	dataTemp = dataIn[i - 1].split(",")
+	time1 = int(dataTemp[0])
+	
+	histo[time2 - time1] += 1
+	i += 1
+
 # Write to file
 outFile = open("results/{0}".format(file + "_dt.txt"), "w")
 outFile.write(data)
@@ -31,4 +43,8 @@ f.close()
 
 # Plot
 plt.plot(range(len(dts)), dts)
+plt.show()
+
+# Delta histogram
+plt.plot(range(len(histo)), histo)
 plt.show()

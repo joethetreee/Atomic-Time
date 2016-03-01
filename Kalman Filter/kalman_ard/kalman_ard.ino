@@ -35,8 +35,8 @@ unsigned long arduinoSecond = 1001;
 unsigned long A = 1;
 unsigned long B = 1;
 unsigned long H = 1;
-unsigned long Q = 1;
-unsigned long R = arduinoUncertainty + gpsUncertainty;
+unsigned long Q = arduinoUncertainty;
+unsigned long R = gpsUncertainty;
 
 float currentStateEstimate;
 unsigned long currentStateEstimateULong500;
@@ -174,7 +174,7 @@ SIGNAL(TIMER0_COMPA_vect) {
       outPPSStart = true;
       outPPSEnd = false;
       digitalWrite(ppsOutPin, HIGH);
-      Serial.print(millis() - currentStateEstimateULong500);
+      /*Serial.print(millis() - currentStateEstimateULong500);
       Serial.print(" ");
       Serial.print(currentStateEstimateULong500);
       Serial.print(" ");
@@ -182,7 +182,7 @@ SIGNAL(TIMER0_COMPA_vect) {
       Serial.print(" ");
       Serial.print(char(177));
       Serial.print(currentProbEstimate);
-      Serial.println("ms");
+      Serial.println("ms");*/
     }
   }
 
