@@ -6,7 +6,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-file = "kalpps12"
+file = "KL2PPS01"
 
 f = open("results/{0}".format(file + ".txt"), "r")
 dts = []
@@ -36,7 +36,16 @@ while i < len(dataIn):
 	i += 1
 
 # Write to file
+# dt
 outFile = open("results/{0}".format(file + "_dt.txt"), "w")
+outFile.write(data)
+outFile.close()
+f.close()
+# pps_dt
+# Convert ints to strings and convert back into line seperated format
+histoData = [str(k) + "," + str(v) for k,v in enumerate(histo)]
+data = "\n".join(histoData)
+outFile = open("results/{0}".format(file + "_ppsdt.csv"), "w")
 outFile.write(data)
 outFile.close()
 f.close()
@@ -46,5 +55,12 @@ plt.plot(range(len(dts)), dts)
 plt.show()
 
 # Delta histogram
-plt.plot(range(len(histo)), histo)
+fig, ax = plt.subplots(1, 1, figsize = (15, 10))
+ax.plot(range(len(histo)), histo)
+ax.set_title("Distribution of Successive Arduino Kalman PPS Time Deltas")
+ax.set_xlabel("KALPPS - KALPPS Time Delta (ms)")
+ax.set_ylabel("Frequency")
+ax.set_xlim(975, 1025)
+ax.grid()
+ax.text(0.05, 0.88, "Using {0}.txt dataset".format(file), transform = ax.transAxes)
 plt.show()

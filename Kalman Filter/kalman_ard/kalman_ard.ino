@@ -5,8 +5,10 @@
 #include <SPI.h>
 #include <SoftwareSerial.h>
 #include <avr/sleep.h>
+#include "SdFat.h"
 
 #define ppsOutPin 5
+#define chipSelect 10
 
 SoftwareSerial gpsSerial(8, 7);
 
@@ -26,6 +28,11 @@ char nmea1[90];
 char nmea2[90];
 char nmeaTime[11];
 char nmeaTime500[11];
+
+// SD Card
+SdFat sd;
+SdFile logfile;
+
 
 // Kalman filter variables
 unsigned long arduinoUncertainty = 1;
@@ -55,6 +62,26 @@ void setup() {
   Serial.begin(9600);
   Serial.println("Kalman Filter 0.2");
 
+  // Chip select
+  pinMode(chipSelect, OUTPUT);
+
+  if (!sd.begin(chipSelect, SPI_FULL_SPEED)) {      // if you're using an UNO, you can use this line instead
+    Serial.println("Error 2");
+  }
+  char filename[15];
+  strcpy(filename, "KL2PPS00.TXT");
+  for (uint8_t i = 0; i < 100; i++) {
+    filename[6] = '0' + i/10;
+    filename[7] = '0' + i%10;
+    // create if does not exist, do not open existing, write, sync after write
+    if (! sd.exists(filename)) {
+      break;
+    }
+  }
+  if (!logfile.open(filename, O_RDWR | O_CREAT | O_AT_END)) {
+    Serial.println("Error 3");
+  }
+
   // Setup Timer0 to call our once-per-millisecond function.
   OCR0A = 0xAF;
   TIMSK0 |= _BV(OCIE0A);
@@ -80,6 +107,13 @@ void loop() {
       stepKalman = false;
       filterStep(1000, milliLast);
       outPPSStart = false;
+
+      // Write to SD card
+      logfile.print((unsigned long)(currentStateEstimate + 0.5));
+      logfile.print(",");
+      logfile.println(milliLast);
+      logfile.flush();
+      
       /*Serial.print(milliLast);
       Serial.print(" ");
       Serial.print(currentStateEstimateULong);
