@@ -11,7 +11,7 @@ import numpy as np
 import matplotlib as mplt
 import matplotlib.pyplot as plt
 from scipy.stats.stats import pearsonr
-filename = "GARNMEA20160131_190024ChckdCor"
+filename = "GARNMEA20160303_130623ChckdCor"
 normalise = False
 
 oset_GGA = 1 				# offset of GGA sentence
@@ -51,24 +51,27 @@ print("~",int(np.ceil(len(contentsTxt)/period)))
 for i in range(0,len(contentsTxt),period):
 	# get information from GGA sentence
 	commaLoc = 0
+	line = contentsTxt[i+oset_GGA]
+	print(i, line)
 	for commaNum in range(qCommaIndex): 	 	 	# value of interest
-		commaLoc += contentsTxt[i+oset_GGA][commaLoc:].index(',')+1
-	commaLoc2 = commaLoc + contentsTxt[i+oset_GGA][commaLoc:].index(',')
-	qArr[int(i/period)] = int(float(contentsTxt[i+oset_GGA][commaLoc:commaLoc2]))
-	
+		commaLoc += line[commaLoc:].index(',')+1
+	commaLoc2 = commaLoc + line[commaLoc:].index(',')
+	qArr[int(i/period)] = int(float(line[commaLoc:commaLoc2]))
 	
 	# get information from PPS sentence
+	line = contentsTxt[i+oset_PPS]
 	commaLoc = 0
 	for commaNum in range(1): 	 	 	 	 	# find pps value
-		commaLoc += contentsTxt[i+oset_PPS][commaLoc:].index(',')
-	ser_T[int(i/period)] = int(contentsTxt[i+oset_PPS][1:commaLoc])
-	pps_T[int(i/period)] = int(contentsTxt[i+oset_PPS][commaLoc+1:])
+		commaLoc += line[commaLoc:].index(',')
+	ser_T[int(i/period)] = int(line[1:commaLoc])
+	pps_T[int(i/period)] = int(line[commaLoc+1:])
 
 # find quality types in data
 qTypes = []
 for i in range(len(qArr)):
 	if (qArr[i] not in qTypes):
 		qTypes.append(qArr[i])
+qTypes.sort()
 
 # put data into arrays of arrays
 dataComb = [[[] for i in range(3)] for j in range(len(qTypes))] 		# array of dual arrays; store ser,pps,second for each qVal
@@ -112,7 +115,9 @@ ppsser_dT_ = [[] for i in range(len(dataComb))]
 for i in range(len(ppsser_dT_)):
 	ppsser_dT_[i] = [0]*len(dataComb[i][0])
 	for j in range(len(ppsser_dT_[i])):
-		ppsser_dT_[i][j] = dataComb[i][0][j]-dataComb[i][1][j]
+		ppsser_dt = dataComb[i][0][j]-dataComb[i][1][j]
+		if (0<=ppsser_dt<=1000):
+			ppsser_dT_[i][j] = dataComb[i][0][j]-dataComb[i][1][j]
 
 binMin = 0
 binMax = 1000
@@ -127,6 +132,8 @@ fig = plt.figure(figsize=(11,6))
 mplt.rcParams.update({'font.size': 15})
 
 medianArr = [0]*len(ppsser_dT_)
+avgValx_type = [0]*len(qTypesNZ) 				# store the average value for each "delimiter"
+avgValu_type = [0]*len(qTypesNZ) 				# store the std dev for each "delimiter"
 for j in range(len(ppsser_dT_)):
 	histData = ppsser_dT_[j]
 	binWidth = (binMax - binMin)/binNum
@@ -145,12 +152,28 @@ for j in range(len(ppsser_dT_)):
 	for i in range(len(binMids)):
 		binMids[i] = (binEdges[i]+binEdges[1+i])/2.0
 		
-	print(qTypes[j])
+	#print(qTypes[j])
 		
 	ser_leg[j] ,= plt.plot(binMids, binVals, color=plt.cm.gist_rainbow(qTypesNZ[j]))
 	medianArr[j] = binMids[Median(binVals)]
-print("pearsonMedian:",pearsonr(medianArr, qTypes))
-	
+	tot=0
+	for i in range(len(binVals)):
+		tot += float(binMids[i]*binVals[i])/sum(binVals)
+	std=0
+	for i in range(len(binVals)):
+		std += float((binMids[i]-tot)**2)*binVals[i]/sum(binVals)
+	std = np.sqrt(std)
+	avgValx_type[j] = tot
+	avgValu_type[j] = std
+	#plt.plot([tot,tot],[0,max(binVals)], color=plt.cm.gist_rainbow(qTypesNZ[j]))
+print(pearsonr(medianArr, qTypes))
+
+ylim = plt.gca().get_ylim()
+xlim = plt.gca().get_xlim()
+
+for j in range(len(qTypes)):
+	plt.annotate('sat# '+str(qTypes[j])+' avg '+str(round(avgValx_type[j],1))+' std '+str(round(avgValu_type[j],1))+' ms'
+	, xy=(0.5,0.1+0.8*j/len(qTypes)), xycoords='axes fraction')	
 	
 plt.title("Dist. of PPS-serial difference by satellite number")
 plt.xlabel("Time difference /ms")
@@ -159,8 +182,6 @@ plt.ylabel("Frequency")
 cbarTicksTemp = np.linspace(min(qTypesNZ), max(qTypesNZ), len(qTypesNZ))
 cbar = plt.colorbar(cbarPlot, ticks=cbarTicksTemp)
 cbarTicksNew = np.linspace(min(qTypes), max(qTypes), len(qTypes), dtype = int)
-print (cbarTicksTemp)
-print(cbarTicksNew)
 cbar.ax.set_yticklabels(cbarTicksNew)  # horizontal colorbar
 
 saveFileName = filename+"SerPPS_satNum_dist"
@@ -169,4 +190,4 @@ plt.savefig("../../Results/"+saveFileName+".svg")
 
 plt.show()
 
-print("pearson:",pearsonr(ppsser_dT, qArr))
+print(pearsonr(ppsser_dT, qArr))
