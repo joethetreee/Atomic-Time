@@ -1,6 +1,7 @@
 import numpy as np
+import matplotlib as mplt
 import matplotlib.pyplot as plt
-filename = "GARNMEA20160131_150715ChckdCor"
+filename = "GARNMEA20160229_155510ChckdCor"
 
 contents = open("../../Results/"+filename+".txt", mode='r')
 contentsTxt = contents.readlines()
@@ -25,7 +26,7 @@ def AllanVar(data, order):
  
 ser_T = [0]*len(contentsTxt)	 	# store serial times
 pps_T = [0]*len(contentsTxt)	 	# store pps times
-
+print(len(contentsTxt))
 # put data into arrays
 j=0
 for i in range(len(ser_T)):
@@ -39,25 +40,30 @@ for i in range(len(ser_T)):
 ser_T = ser_T[:j]
 pps_T = pps_T[:j]	
 
-allan_x = range(1, 10000, 20)
+allan_x = [int(pow(1.7,i)) for i in range(1,20,1)]
 	
 allan_sery = [0]*len(allan_x)
 	
 allan_ppsy = [0]*len(allan_x)
 
 for i in range(len(allan_x)):
-	print(i, allan_x[i])
+	#print(i, allan_x[i])
 	allan_sery[i] = ((AllanVar(ser_T, allan_x[i]))**0.5)
 
 for i in range(len(allan_x)):
-	print(i, allan_x[i])
+	#print(i, allan_x[i])
 	allan_ppsy[i] = ((AllanVar(pps_T, allan_x[i]))**0.5)
+	print(allan_ppsy[i],0.5/np.sqrt(allan_x[i]),"    ",allan_x[i])
 	
 ardError_y = [1]*len(allan_x)
 for i in range(len(ardError_y)):
 	ardError_y[i] = 1
 	
-fig = plt.figure()
+print(len(pps_T))
+print(np.log2(len(pps_T)))	
+	
+fig = plt.figure(figsize=(10,6))
+mplt.rcParams.update({'font.size': 12})	
 ax1 = fig.gca()
 ax2 = fig.gca()
 ser_allan_ser, = ax1.plot(np.log(allan_x), np.log(allan_sery))
