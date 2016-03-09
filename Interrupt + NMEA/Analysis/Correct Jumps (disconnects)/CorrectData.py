@@ -3,10 +3,10 @@
 removes failed data entries
 """
 
-filename = "GPSMIL37"
+filename = "GPSMIL34"
 linStart = ["$GPGGA","$GPRMC","t"] 		 	 	# start of each line
 
-contents = open(filename+".txt", mode='r')
+contents = open("../../Results/"+filename+".txt", mode='r')
 contentsTxt = contents.readlines()
 contents.close()
 
@@ -17,23 +17,26 @@ gli = 0									# keep track of index for good line
 while(i<len(contentsTxt)):
 	goodLine = True
 	for j in range(len(linStart)):
-		if (contentsTxt[i+j][:len(linStart[j])] != linStart[j]): 		# check that the line has the correct start
+		if (contentsTxt[i+j][:len(linStart[j])] != linStart[j]): 	# check that the line has the correct start
 			i += j+1
 			goodLine = False
 			break
+	print(i, goodLine)
 	if (goodLine):
-		for j in range(len(linStart)):
+		for k in range(len(linStart)):
 			goodLines[gli] = i
 			i += 1
 			gli += 1
-			
+
+print(gli)
 goodLines = goodLines[:gli]
 			
 				
 
-contents = open(filename+"Chckd.txt", mode='w')		# open/create file to write
+contents = open("../../Results/"+filename+"Chckd.txt", mode='w')		# open/create file to write
 
 for i in range(len(goodLines)):
 	contents.write(str(contentsTxt[goodLines[i]]))
+	print(i,str(contentsTxt[goodLines[i]]))
 	
 contents.close()
