@@ -163,6 +163,7 @@ void loop() {
         count2 = 0;
         nmea1[0] = '\0';
         nmea2[0] = '\0';
+        firstLoop = true;
 
         // Once we've got both sentences, set our write flag to true and exit the loop
         attachInterrupt(digitalPinToInterrupt(3), getInputTime, RISING);
