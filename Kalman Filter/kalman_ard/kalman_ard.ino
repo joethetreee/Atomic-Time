@@ -2,6 +2,8 @@
 // Author: Joe Wilson
 // Created: 10/02/2016
 
+// _SS_MAX_RX_BUFF in SoftwareSerial.h was changed to 256.
+
 #include <SPI.h>
 #include <SoftwareSerial.h>
 #include <avr/sleep.h>
@@ -28,6 +30,10 @@ char nmea1[90];
 char nmea2[90];
 char nmeaTime[11];
 char nmeaTime500[11];
+char numSatsChar[3];
+int numSats = 0;
+int satOffsets[13] = {0, 0, 0, 224, 233, 245, 262, 281, 294, 304, 320, 303, 330}; // PPS Distribution Offset Average from
+                                                                                // kalman_ard.py on GPSMIL37ChckdCor.txt dataset
 
 // SD Card
 SdFat sd;
@@ -59,7 +65,7 @@ bool stepKalman = false;
 
 // Main program
 void setup() {
-  Serial.begin(9600);
+  Serial.begin(115200);
   Serial.println("Kalman Filter 0.2");
 
   // Chip select
@@ -89,6 +95,9 @@ void setup() {
   // Start the software serial connection
   gpsSerial.begin(9600);
 
+  delay(2000);
+  gpsSerial.flush();
+
   pinMode(3, INPUT);
   pinMode(ppsOutPin, OUTPUT);
   attachInterrupt(digitalPinToInterrupt(3), getInputTime, RISING);
@@ -101,17 +110,17 @@ void loop() {
       currentStateEstimate = milliLast;
       firstSer = false;
       stepKalman = false;
-      //Serial.println(milliLast);
-    }
-    else  {
+    } else  {
       stepKalman = false;
-      filterStep(1000, milliLast);
+      filterStep(1000, milliLast - satOffsets[numSats]);
       outPPSStart = false;
 
       // Write to SD card
-      logfile.print((unsigned long)(currentStateEstimate + 0.5));
+      logfile.print(currentStateEstimateULong500);
       logfile.print(",");
-      logfile.println(milliLast);
+      logfile.print(milliLast);
+      logfile.print(",");
+      logfile.println(numSats);
       logfile.flush();
       
       /*Serial.print(milliLast);
@@ -120,6 +129,14 @@ void loop() {
       Serial.print(" ");
       Serial.print(currentProbEstimate);
       Serial.print(" ");*/
+
+      Serial.print(currentStateEstimateULong500);
+      Serial.print(",");
+      Serial.print(milliLast);
+      Serial.print(",");
+      Serial.print(numSats);
+      Serial.print(",");
+      Serial.println(currentStateEstimate);
     }
   }
   
@@ -136,17 +153,33 @@ void loop() {
 
     // We want to record two NMEA sentences. So start by filling nmea1 buffer...
     if (fill == 1) {
+      
       nmea1[count1] = c;
       count1++;
       if (c == '\n') {
         nmea1[count1] = '\0';
         fill = 2;
+
+        // Is this GGA?
+        if(nmea1[3] == 'G') {
+          int pos1 = strpos(nmea1,',', 7);
+          int pos2 = strpos(nmea1, ',', 8);
+
+          if(pos1 != -1 && pos2 != -1) {
+            numSatsChar[0] = '\0';
+            strncpy(numSatsChar, nmea1 + pos1 + 1, pos2 - pos1 - 1);
+            numSatsChar[pos2 - pos1 - 1] = '\0';
+            numSats = atoi(numSatsChar);
+          }
+        }
       }
     // Then fill the nmea2 buffer.
     } else if (fill == 2) {
+
       nmea2[count2] = c;
       count2++;
       if (c == '\n') {
+
         nmea2[count2] = '\0';
         fill = 1;
 
@@ -158,6 +191,19 @@ void loop() {
         strcpy(nmeaTime500, nmeaTime);
         // Add the 500ms offset
         nmeaTime500[7] = '5';
+
+        // Is this GGA?
+        if(nmea2[3] == 'G') {
+          int pos1 = strpos(nmea2,',', 7);
+          int pos2 = strpos(nmea2, ',', 8);
+
+          if(pos1 != -1 && pos2 != -1) {
+            numSatsChar[0] = '\0';
+            strncpy(numSatsChar, nmea2 + pos1 + 1, pos2 - pos1 - 1);
+            numSatsChar[pos2 - pos1 - 1] = '\0';
+            numSats = atoi(numSatsChar);
+          }
+        }
 
         count1 = 0;
         count2 = 0;
@@ -204,27 +250,31 @@ void filterStep(int controlVector, unsigned long measurementVector) {
 
 // Function called once per millisecond
 SIGNAL(TIMER0_COMPA_vect) {
+  unsigned long tempMillis = millis();
   if(outPPSStart == false) {
-    if(millis() >= currentStateEstimateULong500) {
+    if(tempMillis >= currentStateEstimateULong500) {
       outPPSStart = true;
       outPPSEnd = false;
-      digitalWrite(ppsOutPin, HIGH);
-      /*Serial.print(millis() - currentStateEstimateULong500);
-      Serial.print(" ");
-      Serial.print(currentStateEstimateULong500);
-      Serial.print(" ");
-      Serial.print(nmeaTime500);
-      Serial.print(" ");
-      Serial.print(char(177));
-      Serial.print(currentProbEstimate);
-      Serial.println("ms");*/
+      digitalWrite(ppsOutPin, HIGH); // PPS on
     }
-  }
-
-  if(outPPSEnd == false) {
-    if(millis() >= currentStateEstimateULong600) {
+  } else if(outPPSEnd == false) {
+    if(tempMillis >= currentStateEstimateULong600) {
       outPPSEnd = true;
-      digitalWrite(ppsOutPin, LOW);
+      digitalWrite(ppsOutPin, LOW); // PPS off
     }
   }
+}
+
+// Finds the nth occurance of a character in a string. Returns -1 if not found.
+int strpos(char* haystack, char needle, int nth) {
+  int counter = 0;
+  for(int i = 0; i <= strlen(haystack); i++) {
+    if(haystack[i] == needle) {
+      counter += 1;
+      if(counter == nth) {
+        return i;
+      }
+    }
+  }
+  return -1;
 }
