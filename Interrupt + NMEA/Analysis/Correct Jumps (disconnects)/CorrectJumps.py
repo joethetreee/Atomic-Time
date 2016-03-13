@@ -48,7 +48,7 @@ while (CheckLineStart(contentsTxt[oset_GGA+period],"$GPGGA")==False):
 print(period)
 
 # remove data without a fix
-#contentsTxt = contentsTxt[40002:50001]
+#contentsTxt = contentsTxt[24000:30000]
 contentsTxtCor = [0]*len(contentsTxt)
 i = 0
 j = 0
@@ -64,7 +64,12 @@ while (i<len(contentsTxt)-period+1):	 		 	# while loop because for loop does not
 		for commaNum in range(6): 	 	# find quality value (fix/no fix)
 			commaLoc += contentsTxt[i+oset_GGA][commaLoc:].index(',')+1
 		commaLoc2 = commaLoc+contentsTxt[i+oset_GGA][commaLoc:].index(',')
-		qVal = int(contentsTxt[i+oset_GGA][commaLoc:commaLoc2])
+		qVal = contentsTxt[i+oset_GGA][commaLoc:commaLoc2]
+		try:
+			qVal = int(qVal)
+		except ValueError:
+			print("ValError",qVal)
+			delete = True
 		if (qVal == 0):
 			print("qVal", i, contentsTxt[i+oset_GGA])
 			delete = True
@@ -84,6 +89,7 @@ while (i<len(contentsTxt)-period+1):	 		 	# while loop because for loop does not
 			delete = True
 		ser_Prev = ser_t
 		pps_Prev = pps_t
+	
 	
 	if (not delete and not conPrev): 		# check if the conctn is new -- check & remove new conctn data where the is no new pps since
 		commaLoc = 1+contentsTxt[i+oset_PPS][1:].index(",")
@@ -106,6 +112,7 @@ while (i<len(contentsTxt)-period+1):	 		 	# while loop because for loop does not
 
 # truncate array to the end of the data		
 contentsTxtCor = contentsTxtCor[:j]
+#contentsTxtCor = contentsTxtCor[:21]
 
 contents = open(filename+"Fix.txt", mode='w')		# open/create file to write
 
@@ -168,6 +175,7 @@ serCur = 0 							 	# time of serial for previous line
 serPrev = 0 							# time of serial for previous line
 ggaCur = 0 								# time of GGA for current line
 ggaPrev = 0 							# time of GGA for previous line
+ppsCorrection = 0
 for i in range(0, len(contentsTxtCor)-1, period):
 	#print("->i:",i)	
 	
@@ -181,8 +189,8 @@ for i in range(0, len(contentsTxtCor)-1, period):
 	for commaNum in range(1): 	 	# find time
 		#print("A",oset_GGA+i)
 		commaLoc += line[commaLoc:].index(',')+1
-	ggaH = line[commaLoc:commaLoc+6] 			# GGA time in HHMMSS format (string)
-	ggaCur = ConvertHHMMSS_s(ggaH)
+#	ggaH = line[commaLoc:commaLoc+6] 			# GGA time in HHMMSS format (string)
+#	ggaCur = ConvertHHMMSS_s(ggaH)
 	
 	# find pps using pps data
 	line = contentsTxtCor[oset_PPS+i]
@@ -196,9 +204,9 @@ for i in range(0, len(contentsTxtCor)-1, period):
 	if (i==0): 							 	# go back to start of loop if i is 0 (need to take diff between successive data)
 		continue
 	
-	ggad = ggaCur-ggaPrev 						# difference in seconds between messages
-	if (ggad<0):
-		ggad += 60*60*24
+#	ggad = ggaCur-ggaPrev 						# difference in seconds between messages
+#	if (ggad<0):
+#		ggad += 60*60*24
 		
 	pps_dt = int(ppsCur-ppsPrev)
 	ser_dt = int(serCur-serPrev)
@@ -208,7 +216,14 @@ for i in range(0, len(contentsTxtCor)-1, period):
 
 	#print("->",i,ppsCur,serCur,  "dt",pps_dt,ser_dt,ppsser_dt,ppsser_mil)
 	
-	ppsCur += int(int(1-round(pps_dt,-3)/1000)*ppsAvg)		# correct by however much the pps difference varies from 1000
+	#ppsCur += int(int(1-round(pps_dt,-3)/1000)*ppsAvg)		# correct by however much the pps difference varies from 1000
+	
+	if (int(round(pps_dt-ppsCorrection,-3))!=1000):
+		pppppp = ppsCorrection
+		ppsCorrection = (pps_dt-1000)
+		print(contentsTxtCor[oset_GGA+i])
+		print("ppsCor",pps_dt,pppppp,"   ",ppsPrev,ppsCur,ppsCorrection)
+	ppsCur -= ppsCorrection
 	serCur = ppsCur + ppsser_dt - ppsser_mil
 	
 	#print(ppsCur,serCur)
