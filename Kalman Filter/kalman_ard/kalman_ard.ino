@@ -40,10 +40,10 @@ SdFat sd;
 SdFile logfile;
 
 
-// Kalman filter variables
-unsigned long arduinoUncertainty = 1;
-unsigned long gpsUncertainty = 500;
-unsigned long arduinoSecond = 1001;
+// Kalman filter variables (multipled by 100 for decimal precision using integer arithmetic in filterStep())
+unsigned long arduinoUncertainty = 100;
+unsigned long gpsUncertainty = 50000;
+unsigned long arduinoSecond = 100100;
 
 unsigned long A = 1;
 unsigned long B = 1;
@@ -51,15 +51,15 @@ unsigned long H = 1;
 unsigned long Q = arduinoUncertainty;
 unsigned long R = gpsUncertainty;
 
-float currentStateEstimate;
+unsigned long currentStateEstimate;
 unsigned long currentStateEstimateULong500;
 unsigned long currentStateEstimateULong600;
-float currentProbEstimate = gpsUncertainty;
-float innovation;
-float innovationCovariance;
+unsigned long currentProbEstimate = gpsUncertainty;
+int innovation;
+unsigned long innovationCovariance;
 float kalmanGain;
-float predictedStateEstimate;
-float predictedProbEstimate;
+unsigned long predictedStateEstimate;
+unsigned long predictedProbEstimate;
 
 bool stepKalman = false;
 
@@ -107,7 +107,7 @@ void setup() {
 void loop() {
   if(stepKalman) {
     if (firstSer) {
-      currentStateEstimate = milliLast;
+      currentStateEstimate = milliLast * 100;
       firstSer = false;
       stepKalman = false;
     } else  {
@@ -122,14 +122,8 @@ void loop() {
       logfile.print(",");
       logfile.println(numSats);
       logfile.flush();
-      
-      /*Serial.print(milliLast);
-      Serial.print(" ");
-      Serial.print(currentStateEstimateULong);
-      Serial.print(" ");
-      Serial.print(currentProbEstimate);
-      Serial.print(" ");*/
 
+      /*
       Serial.print(currentStateEstimateULong500);
       Serial.print(",");
       Serial.print(milliLast);
@@ -137,6 +131,7 @@ void loop() {
       Serial.print(numSats);
       Serial.print(",");
       Serial.println(currentStateEstimate);
+      */
     }
   }
   
@@ -228,23 +223,24 @@ void getInputTime() {
   }
 }
 
-void filterStep(int controlVector, unsigned long measurementVector) {
+void filterStep(unsigned long controlVector, unsigned long measurementVector) {
   // Prediction
-  predictedStateEstimate = A * currentStateEstimate + B * controlVector;
+  // We multiply by 100 to have 2 decimal place precision whilst using integer arithmetic.
+  predictedStateEstimate = A * currentStateEstimate + B * (controlVector * 100);
   predictedProbEstimate = A * currentProbEstimate * A + Q;
 
   // Observation
-  innovation = measurementVector - H * predictedStateEstimate;
+  innovation = (measurementVector * 100) - H * predictedStateEstimate;
   innovationCovariance = H * predictedProbEstimate * H + R;
 
   // Update
-  kalmanGain = predictedProbEstimate * H / innovationCovariance;
+  kalmanGain = (float)(predictedProbEstimate * H) / innovationCovariance;
   currentStateEstimate = predictedStateEstimate + kalmanGain * innovation;
-  currentProbEstimate = (1 - kalmanGain * H) * predictedProbEstimate;
+  currentProbEstimate = (1.0 - kalmanGain * H) * predictedProbEstimate;
 
-  // Converts the state estimate to a unsigned long and adds 500 milliseconds to allow for signals
+  // Converts back to milliseconds and adds 500 milliseconds to allow for signals
   // arriving late.
-  currentStateEstimateULong500 = (unsigned long)(currentStateEstimate + 0.5) + 500;
+  currentStateEstimateULong500 = currentStateEstimate / 100 + 500;
   currentStateEstimateULong600 = currentStateEstimateULong500 + 100;
 }
 
