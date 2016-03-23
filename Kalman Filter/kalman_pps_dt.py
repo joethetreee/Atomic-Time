@@ -6,7 +6,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-file = "KL2PPS01"
+file = "KL2PPS58"
 
 f = open("results/{0}".format(file + ".txt"), "r")
 dts = []
@@ -32,7 +32,11 @@ while i < len(dataIn):
 	dataTemp = dataIn[i - 1].split(",")
 	time1 = int(dataTemp[0])
 	
-	histo[time2 - time1] += 1
+	try: # The try-except catches a negative index. This occurs when the ULong wraps around to zero.
+		histo[time2 - time1] += 1
+	except IndexError:
+		pass
+		
 	i += 1
 
 # Write to file
