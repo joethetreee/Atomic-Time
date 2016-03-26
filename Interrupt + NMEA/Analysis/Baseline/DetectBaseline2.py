@@ -9,6 +9,14 @@ import KalmanFilter as klm
 import numpy as np
 import matplotlib.pyplot as plt
 
+filename = "GPSMIL33ChckdCor"
+utm = 100 					# uncertainty in measured time
+utp = 0.5 					# uncertainty in predicted time
+avg_T = 1000 				# average time
+
+countTarget = 20				# target number of ser_dTf on one side of avg_T before detecting new phase
+count = 0 					# number of ser_dTf on one side of avg_T (+: above, -: below)
+
 def KalBaseline(xm,up,um,A=1,B=1,H=1, countTY=5, countTN=10):
 	""" Input variables
 	returns (xf,uf)
@@ -124,17 +132,9 @@ def KalBaseline(xm,up,um,A=1,B=1,H=1, countTY=5, countTN=10):
 		if (jCur >= length):
 			return (xb,ub,ib,xf1,xf2)
 
-filename = "GPSMIL33ChckdCor"
-utm = 250 					# uncertainty in measured time
-utp = 0.5 					# uncertainty in predicted time
-avg_T = 1000 				# average time
-
-countTarget = 10				# target number of ser_dTf on one side of avg_T before detecting new phase
-count = 0 					# number of ser_dTf on one side of avg_T (+: above, -: below)
-
 # extract data into arrays
 
-contents = open(filename+".txt", mode='r')
+contents = open("../../Results/"+filename+".txt", mode='r')
 contentsTxt = contents.readlines()
 contents.close()
 
@@ -150,8 +150,8 @@ for i in range(len(contentsTxt)):
 		pps_T[j] = int(line[commaLoc+1:])
 		j += 1
 		
-ser_Tm = ser_Tm[0:10]
-pps_T = pps_T[0:10]
+ser_Tm = ser_Tm[0:1000]
+pps_T = pps_T[0:1000]
 
 (serb_T,serb_U,serb_i,serf1_T,serf2_T) = KalBaseline(ser_Tm,0.5,150,1,1,1,5,10)
 
@@ -171,11 +171,63 @@ for i in range(len(serb_i)):
 		ppsserb_dT.append(serb_T[k]-pps_T[j])
 		ppsserb_i.append(j)
 		k += 1
+
+print("ib:",serb_i)
 print("avg:",sumy/max(1,sumx),"true:",(pps_T[-1]-pps_T[0])/(len(pps_T)-1),";",(ser_Tm[-1]-ser_Tm[0])/(len(ser_Tm)-1),(serf1_T[-1]-serf1_T[0])/(len(serf1_T)-1))
+
+for i in range(len(serb_i)):
+	y = [serb_T[j]-serb_T[serb_i[i][0]] for j in range(serb_i[i][0],serb_i[i][1]+1,1)]
+	x = range(serb_i[i][1]-serb_i[i][0]+1)
+	
+	print(np.correlate(x,y)/np.correlate(x,x))
+
+
+#secLenArr = [(serb_T[serb_i[i][1]]-serb_T[serb_i[i][0]])/(serb_i[i][1]-serb_i[i][0]) for i in range(len(serb_i))]
+#secLenWeightArr = [1/np.sqrt(serb_i[i][1]-serb_i[i][0]-1) for i in range(len(serb_i))]
+#
+#secLenAvg = 0
+#for i in range(len(secLenArr)):
+#	secLenAvg += secLenArr[i]*secLenWeightArr[i]
+#secLenAvg /= sum(secLenWeightArr)
+#
+#secLenStd = 0
+#for i in range(len(secLenArr)):
+#	secLenStd += ((secLenArr[i]-secLenAvg)**2)*secLenWeightArr[i]
+#secLenStd = np.sqrt(secLenStd)
+#secLenStd /= np.sqrt(sum(secLenWeightArr))
+#	
+#print(secLenArr)
+#
+#print("secLenAvg:",secLenAvg)
+#print("secLenStd:",secLenStd)
+#
+#secLenArrCut = []
+#secLenWeightArrCut = []
+#for i in range(len(secLenArr)):
+#	if (abs(secLenArr[i]-secLenAvg)<secLenStd):
+#		secLenArrCut.append(secLenArr[i])
+#		secLenWeightArrCut.append(secLenWeightArr[i])
+#
+#print(secLenArrCut)
+#
+#secLenAvgCut = 0
+#for i in range(len(secLenArrCut)):
+#	secLenAvgCut += secLenArrCut[i]*secLenWeightArrCut[i]
+#secLenAvgCut /= sum(secLenWeightArrCut)
+#
+#secLenStdCut = 0
+#for i in range(len(secLenArrCut)):
+#	secLenStdCut += ((secLenArrCut[i]-secLenAvgCut)**2)*secLenWeightArrCut[i]
+#secLenStdCut = np.sqrt(secLenStdCut)
+#secLenStdCut /= sum(secLenWeightArrCut)
+#
+#print("secLenAvgCut:",secLenAvgCut)
+#print("secLenStdCut:",secLenStdCut)
 
 
 #plt.plot(ppsserb_i,ppsserb_dT)
-plt.plot(ppsser_dT)
+plt.scatter(range(len(ppsser_dT)),ppsser_dT, linewidth=0, s=2)
+plt.xlim(0,len(ppsser_dT)-1)
 plt.plot(ppsserf1_dT)
 plt.plot(ppsserf2_dT)
 

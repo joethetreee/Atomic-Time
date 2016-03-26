@@ -20,7 +20,7 @@ import numpy as np
 import matplotlib as mplt
 import matplotlib.pyplot as plt
 
-filename = "GPSMIL12ChckdCor"	
+filename = "GPSMIL37ChckdCor"	
 
 contents = open("../../results/" + filename + ".txt", mode='r')
 contentsTxt = contents.readlines()
@@ -42,7 +42,7 @@ for i in range(len(ser_T)):
 		
 		
 start = 0
-end = 10000
+end = j
 end = min(end, j)
 ser_T = ser_T[start:end]
 pps_T = pps_T[start:end]
@@ -87,7 +87,7 @@ plt.xlabel("Samples")
 plt.ylabel("Time difference /ms")
 plt.xlim(0,len(ppsser_dT))
 plt.ylim(int(min(ppsser_dT)/20)*20, int(max(ppsser_dT)/20+1)*20)
-plt.ylim(0,1000)
+#plt.ylim(0,1000)
 axes = plt.axes()
 axes.yaxis.set_major_formatter(y_formatter)
 plt.savefig("../../Results/"+filename+"ppsser_dT("+str(start)+"-"+str(end)+").png", dpi=400)

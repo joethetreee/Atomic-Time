@@ -14,12 +14,15 @@ import numpy as np
 import matplotlib as mplt
 import matplotlib.pyplot as plt
 from scipy.stats.stats import pearsonr
-filename = "GPSMIL14ChckdCor"
+filename = "GPSMIL37ChckdCor"
 
 oset_GGA = 0 				# offset of GGA sentence
 oset_PPS = 2 				# offset of PPS sentence
 period = 3	 				# number of lines in each data set
 qCommaIndex = 7				# number of commas in GGA line before data
+
+start = 0
+end = 5000
 
 def ColArray(N):
 	colourNum = np.linspace(0, 1, N)
@@ -32,28 +35,34 @@ contents = open("../../Results/"+filename+".txt", mode='r')
 contentsTxt = contents.readlines()
 contents.close()
 
-print("length: ",len(contentsTxt))
-ser_T = [0]*int(np.ceil(len(contentsTxt)/period))	 	# store serial times
-pps_T = [0]*int(np.ceil(len(contentsTxt)/period))	 	# store pps times
-qArr = [0]*int(np.ceil(len(contentsTxt)/period))	 	# store connections quality
-print("~",int(np.ceil(len(contentsTxt)/period)))
+if (end=="end"):
+	end = len(contentsTxt)/period
+end = int(min(end, len(contentsTxt)/period))
+
+print("length: ",end)
+ser_T = [0]*end	 	# store serial times
+pps_T = [0]*end	 	# store pps times
+qArr = [0]*end	 	# store connections quality
+print("~",end)
 
 # put data into arrays
-for i in range(0,len(contentsTxt),period):
+
+for i in range(0,end,1):
 	# get information from GGA sentence
 	commaLoc = 0
+	line = contentsTxt[i*period+oset_GGA]
 	for commaNum in range(qCommaIndex): 	 	 	# value of interest
-		commaLoc += contentsTxt[i+oset_GGA][commaLoc:].index(',')+1
-	commaLoc2 = commaLoc + contentsTxt[i+oset_GGA][commaLoc:].index(',')
-	qArr[int(i/period)] = int(float(contentsTxt[i+oset_GGA][commaLoc:commaLoc2]))
-	
+		commaLoc += line[commaLoc:].index(',')+1
+	commaLoc2 = commaLoc + line[commaLoc:].index(',')
+	qArr[i] = int(float(line[commaLoc:commaLoc2]))
 	
 	# get information from PPS sentence
 	commaLoc = 0
+	line = contentsTxt[i*period+oset_PPS]
 	for commaNum in range(1): 	 	 	 	 	# find pps value
-		commaLoc += contentsTxt[i+oset_PPS][commaLoc:].index(',')
-	ser_T[int(i/period)] = int(contentsTxt[i+oset_PPS][1:commaLoc])
-	pps_T[int(i/period)] = int(contentsTxt[i+oset_PPS][commaLoc+1:])
+		commaLoc += line[commaLoc:].index(',')
+	ser_T[i] = int(line[1:commaLoc])
+	pps_T[i] = int(line[commaLoc+1:])
 
 # find quality types in data
 qTypes = []

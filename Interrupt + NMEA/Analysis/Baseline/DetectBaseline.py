@@ -14,12 +14,12 @@ utm = 250 					# uncertainty in measured time
 utp = 0.5 					# uncertainty in predicted time
 avg_T = 1000 				# average time
 
-countTarget = 10				# target number of ser_dTf on one side of avg_T before detecting new phase
+countTarget = 20				# target number of ser_dTf on one side of avg_T before detecting new phase
 count = 0 					# number of ser_dTf on one side of avg_T (+: above, -: below)
 
 # extract data into arrays
 
-contents = open(filename+".txt", mode='r')
+contents = open("../../Results/"+filename+".txt", mode='r')
 contentsTxt = contents.readlines()
 contents.close()
 
