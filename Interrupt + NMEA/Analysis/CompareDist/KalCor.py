@@ -176,18 +176,24 @@ for i in range(len(qVals)):
 
 ppsE_T = [0]*len(ser_T)	 	# expected time of serial arrival
 covU_T = [0]*len(ser_T)	 	# expected uncertainty
-ardU_t = 0.5				# uncertainty in arduino times
+ardU_t = 0.5					# uncertainty in arduino times
 #ardD_t = (ser_T[-1]-ser_T[0])/(len(ser_T)-1)-1000 	# arduino drift per millisecond (from post-analysis)
-ardD_t = 0
+ardD_t = 0.0005
+secLen = 1000
+secLenU = 1
 	
 covU_T[0] = 50
 ppsE_T[0] = ser_T[0]-ppsser_xR[qValsR.index(q_T[0])]
 
-for i in range(len(ppsE_T)-1):
+for i in range(len(ser_T)-1):
+	if (i>0):
+		(secLen,secLenU) = klm.KalFilIter(secLen, 0, ppsE_T[i]-ppsE_T[i-1], secLenU, ardD_t, covU_T[i])
+	#print(secLen,secLenU)
 	qValiCur = qValsR.index(q_T[i])
 	qValiNext = qValsR.index(q_T[1+i])
-	ppsE_T[1+i], covU_T[1+i] = klm.KalFilIter(ppsE_T[i], 1000+ardD_t-(ppsser_xR[qValiNext]-ppsser_xR[qValiCur]),
+	ppsE_T[1+i], covU_T[1+i] = klm.KalFilIter(ppsE_T[i], secLen+ardD_t-(ppsser_xR[qValiNext]-ppsser_xR[qValiCur]),
 									ser_T[1+i]-ppsser_xR[qValiNext], covU_T[i], ardU_t, ppsser_uR[qValiNext])
+	covU_T[1+i] = np.sqrt(covU_T[1+i]**2+0.5**2)							
 	#print(1000+ardD_t-(ppsser_xR[qValiNext]-ppsser_xR[qValiCur]), (ser_T[1+i]-ppsser_xR[qValiNext])-(ser_T[i]-ppsser_xR[qValiCur]))
 
 ppsser_dT = [ser_T[i]-pps_T[i] for i in range(len(ser_T))]
@@ -231,7 +237,7 @@ for i in range(len(ppsppsE_dT)-1):
 		ppsESecLenE_ = (ppsE_T[i]-ppsE_T[i-secLenGroupSize])/(secLenGroupSize)
 		ppsESecLenU_ = np.std(secppsE_dT[i-secLenGroupSize:i])/secLenGroupSize
 		(ppsESecLenE,ppsESecLenU) = klm.KalFilIter(ppsESecLenE,0,ppsESecLenE_, ppsESecLenU,0.01*secLenGroupSize/10000,ppsESecLenU_)
-		print(ppsESecLenE,ppsESecLenU,ppsESecLenE_,ppsESecLenU_)
+		#print(ppsESecLenE,ppsESecLenU,ppsESecLenE_,ppsESecLenU_)
 		#(ppsESecLenE,ppsESecLenU) = (ppsESecLenE_,0.001)
 	(ppsEE_T[i+1],ppsEU_T[i+1]) = klm.KalFilIter(ppsEE_T[i],ppsESecLen,ppsE_T[i+1], ppsEU_T[i],ppsESecLenU,ppsUSecLen)
 

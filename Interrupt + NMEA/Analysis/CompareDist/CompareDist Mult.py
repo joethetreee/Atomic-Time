@@ -14,6 +14,7 @@ then use Kalman filter on each segment
 """
 
 import numpy as np
+import matplotlib as mplt
 import matplotlib.pyplot as plt
 import KalmanFilter as klm
 
@@ -57,16 +58,17 @@ binNum = (binMax-binMin)/binWidth
 binEdges = np.linspace(binMin,binMax,binNum+1)
 binMids = [int((binEdges[i+1]+binEdges[i])/2) for i in range(len(binEdges)-1)]
 
+timing_PPS = False
 segLen = 1000 				# number of seconds in segments
 
 
 # extract data into arrays
 
-contentsC = open(filenameC+".txt", mode='r')
+contentsC = open("../../Results/"+filenameC+".txt", mode='r')
 contentsTxtC = contentsC.readlines()
 contentsC.close()
 
-contents = open(filename+".txt", mode='r')
+contents = open("../../Results/"+filename+".txt", mode='r')
 contentsTxt = contents.readlines()
 contents.close()
 
@@ -98,8 +100,11 @@ for i in range(len(contentsTxt)):
 		pps_T[j] = int(line[commaLoc+1:])
 		j += 1
 		
-ser_T = ser_T[:10000]
-pps_T = pps_T[:10000]
+start = 0
+end = 10000
+end = min(j,end)
+ser_T = ser_T[start:end]
+pps_T = pps_T[start:end]
 #ser_T = ser_T[30000:40000]
 #pps_T = pps_T[30000:40000]
 
@@ -120,17 +125,24 @@ ouf = udist*10		# stores latest uncertainty in offset value
 secserPrev = 0
 secLenFx = 1000.0
 secLenFu = 2.0
-uSecLen = 50/segLen
+SecLenU_p = 1
+SecLenU_s = 100
 dtTot = 0
 
 for iSeg in range(segNum):
 	# get segment data and find second lengths
-	serData = ser_T[iSeg*segLen:(iSeg+1)*segLen]
 	ppsData = pps_T[iSeg*segLen:(iSeg+1)*segLen]
-	secLen = (serData[-1]-serData[0])/(len(serData)-1)
-#	secLen = (ppsData[-1]-ppsData[0])/(len(ppsData)-1)
+	serData = ser_T[iSeg*segLen:(iSeg+1)*segLen]
+	serser_dData = [serData[1+i]-serData[i] for i in range(len(serData)-1)]
+	if (timing_PPS==True):
+		secLenx_ = (ppsData[-1]-ppsData[0])/(len(ppsData)-1)
+		secLenU_ = SecLenU_p/np.sqrt(len(ppsData))
+	else:
+		secLenx_ = (serData[-1]-serData[0])/(len(serData)-1)
+		secLenU_ = np.std(serser_dData)*2/segLen
+	if (i==0): secLenFu = secLenU_	
 	
-	(secLenFx,secLenU) = klm.KalFilIter(secLenFx,0,secLen, secLenFu,secLenFu,uSecLen ,1,1,1)
+	(secLenFx,secLenFu) = klm.KalFilIter(secLenFx,0,secLenx_, secLenFu,1,secLenU_ ,1,1,1)
 	
 	# find secser and then find offset
 	secser_dT = [serData[i]-serData[0]-i*secLenFx for i in range(len(serData))]
@@ -173,7 +185,8 @@ for i in range(1,len(ppsppsPF_U)):
 	(ppsppsPF_dT[i],ppsppsPF_U[i]) = klm.KalFilIter(ppsppsPF_dT[i-1],0,(ppsppsP_dT[i]),
 									ppsppsPF_U[i-1],0.00001,1, 1,1,1)
 
-plt.figure()
+mplt.rcParams.update({'font.size': 18})
+fig = plt.figure(figsize=(10,6))
 #plt.plot(binMids, binValsC)
 #plt.plot(binMids, binVals)
 #ser_ppsser, = plt.plot(ppsser_dT)
@@ -183,6 +196,10 @@ plt.xlabel("Samples")
 plt.ylabel("PPS prediction accuracy /ms")
 plt.title("PPS prediction using distribution profile (segmented)")
 #plt.legend([ser_ppsppsP, ser_ppsppsPF], ["pps-pred", "pps-pred Filtered"])
-plt.annotate("Cast "+filenameC+"; data "+filename+" 0k-10k"+
-	"; second len Ser end dif", xy=(0.05, 0.95), xycoords='axes fraction')
+plt.annotate("(Segmented) Avg: "+str(round(np.average(ppsppsP_dT),1))+" ms;  std dev: "+
+			str(round(np.std(ppsppsP_dT),1))+" ms", xy=(0.05, 0.95), xycoords='axes fraction')
+saveFileName = filename+"("+str(start)+"-"+str(end)+")"+"CompDist"+filenameC+"_seg_serTime="+str(not timing_PPS)
+plt.savefig("../../Results/"+saveFileName+".png",dpi=400)
+plt.savefig("../../Results/"+saveFileName+".svg")
+
 plt.show()
