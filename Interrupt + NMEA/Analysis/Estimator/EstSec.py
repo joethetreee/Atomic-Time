@@ -27,7 +27,7 @@ ue = 0.5				# uncertainty in estimation
 
 # extract data into arrays
 
-contents = open(filename+".txt", mode='r')
+contents = open("../../Results/"+filename+".txt", mode='r')
 contentsTxt = contents.readlines()
 contents.close()
 
@@ -62,7 +62,12 @@ mseCCor = []
 mseKal1 = [] 		# average two values then do cross correlation
 mseDist = [] 		# from minimising distribution width
 xArr = []
-for xstep_ in range(1,11):
+
+xfactor = 1.5
+xstart = 2
+xstop = int(np.log(len(ser_T0)/3)/np.log(xfactor))
+
+for xstep_ in range(xstart,xstop):
 	print(xstep_)
 	estDifEnd = []
 	estAvg = []
@@ -70,7 +75,7 @@ for xstep_ in range(1,11):
 	estKal1 = []
 	estDist = []
 	act = []
-	xstep = int(np.exp(xstep_))
+	xstep = int(xfactor**xstep_)
 	
 	for i in range(0,len(ser_T0),xstep):
 		if (len(act)>=100): 						# we don't need to repeat too many times
@@ -105,7 +110,8 @@ for xstep_ in range(1,11):
 			(ky[0],ku[0]) = kal.KalFilIter(ky[0],-1000,y[kalIter-1-i],ku[0],ue,um,1,1,1)
 		avgEndKal1 = (ky[1]-ky[0])/(len(y)-1)
 		
-		avgDist = MinimiseWidth(y)[0]
+		#avgDist = MinimiseWidth(y)[0]
+		
 #		ky = [0]*len(y)
 #		ku = [um]*len(y)
 #		for i in range(1,len(x)):
@@ -116,14 +122,14 @@ for xstep_ in range(1,11):
 		estAvg.append(avg)
 		estCCor.append(ccor)
 		estKal1.append(avgEndKal1)
-		estDist.append(avgDist)
+		#estDist.append(avgDist)
 		act.append(actT)
 	xArr.append(xstep)
 	mseDifEnd.append(np.sqrt((np.average(act)-np.average(estDifEnd))**2+np.std(estDifEnd)**2))
 	mseAvg.append(np.sqrt((np.average(act)-np.average(estAvg))**2+np.std(estAvg)**2))
 	mseCCor.append(np.sqrt((np.average(act)-np.average(estCCor))**2+np.std(estCCor)**2))
 	mseKal1.append(np.sqrt((np.average(act)-np.average(estKal1))**2+np.std(estKal1)**2))
-	mseDist.append(np.sqrt((np.average(act)-np.average(estDist))**2+np.std(estDist)**2))
+	#mseDist.append(np.sqrt((np.average(act)-np.average(estDist))**2+np.std(estDist)**2))
 	#print(xArr[-1],mseDifEnd[-1],mseAvg[-1],mseCCor[-1])
 
 #log
@@ -131,7 +137,7 @@ ser_difEnd ,= plt.plot(np.log(xArr),np.log(mseDifEnd))
 ser_avg ,= plt.plot(np.log(xArr),np.log(mseAvg))
 ser_cCor ,= plt.plot(np.log(xArr),np.log(mseCCor))
 ser_kal1 ,= plt.plot(np.log(xArr),np.log(mseKal1))
-ser_dist ,= plt.plot(np.log(xArr),np.log(mseDist))
+#ser_dist ,= plt.plot(np.log(xArr),np.log(mseDist))
 
 ##linear
 #ser_difEnd ,= plt.plot(xArr,mseDifEnd)
@@ -146,9 +152,9 @@ plt.ylabel("MSE / ms")
 #linear
 plt.xlabel("log of Sample size")
 plt.ylabel("log of (MSE / ms)")
-plt.legend([ser_difEnd,ser_avg,ser_cCor,ser_kal1,ser_dist],["End point difference","Average",
-		"Cross correlation","Kalman, end diff","Dist. width"])
-plt.savefig(filename+"EstimatorMSE.png", dpi=600, facecolor='w', edgecolor='w',
-        orientation='portrait', papertype=None, format=None,
-        transparent=False, bbox_inches=None, pad_inches=0.1,
-        frameon=None)
+plt.legend([ser_difEnd,ser_avg,ser_cCor,ser_kal1],["End point difference","Average",
+		"Cross correlation","Kalman, end diff"])
+#plt.savefig(filename+"EstimatorMSE.png", dpi=600, facecolor='w', edgecolor='w',
+#        orientation='portrait', papertype=None, format=None,
+#        transparent=False, bbox_inches=None, pad_inches=0.1,
+#        frameon=None)
