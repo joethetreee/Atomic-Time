@@ -13,7 +13,7 @@ Problem: after long PPS freezes/disconnect fixes there is sometimes a shift in P
 this could be caused by avgPPS not being correct at that time
 """
 
-filename = "KL1PRD02Chk"
+filename = "KL1PRD05Chk"
 
 
 oset_ser = 0 			# offset line for serial timing
@@ -77,6 +77,9 @@ while (i<len(contentsTxt)-period+1):	 		 	# while loop because for loop does not
 			ser_t = val
 		elif (k==oset_pps):
 			pps_t = val
+			if (pps_t==0):			# starts out as being 0; if unchanged, no pps was detected
+				delete = True
+				break
 		
 		commaLoc = commaLoc2+1
 			
