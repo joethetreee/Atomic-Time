@@ -26,19 +26,20 @@ import numpy as np
 import matplotlib as mplt
 import matplotlib.pyplot as plt
 
-filename = "TSTPRD00"	
+filename = "TSTPRD00"
 
-contents = open("../../results/" + filename + ".txt", mode='r')	# results from teensy
+contents = open("../../results/" + filename + "msr.txt", mode='r')	# results from teensy (measurement)
 contentsTxt = contents.readlines()
 contents.close()
 
 print("length: ",len(contentsTxt))
 ser_T = [0]*len(contentsTxt)	 	# store serial times
 pps_T = [0]*len(contentsTxt)	 	# store pps times
-parts = 2
-dataRow = [[0]*(2*parts) for i in range(len(contentsTxt))]	# will store ser,pps,ser_trg,pps_trg
-oset_ser = 0
-oset_pps = 1
+partsm = 2
+partst = 2
+dataRow = [[0]*(partsm+partst) for i in range(len(contentsTxt))]	# will store ser_msr,pps_msr,ser_trg,pps_trg
+oset_serm = 0
+oset_ppsm = 1
 binWidth = 1
 
 start = 0
@@ -48,8 +49,8 @@ end = "end"
 for row in range(len(dataRow)):
 	line = contentsTxt[row]
 	commaLoc,commaLoc2 = 0,0
-	for col in range(parts):
-		if (col==parts-1):
+	for col in range(partsm):
+		if (col==partsm-1):
 			try:
 				commaLoc2 = commaLoc+line[commaLoc:].index(',')
 			except IndexError:
@@ -61,14 +62,13 @@ for row in range(len(dataRow)):
 		
 
 
-contents = open("../../results/" + filename + "trg.txt", mode='r')		# results from arduino
+contents = open("../../results/" + filename + "trg.txt", mode='r')		# results from arduino (trigger)
 contentsTxt = contents.readlines()
 contents.close()
 
 print("length: ",len(contentsTxt))
 ser_T = [0]*len(contentsTxt)	 	# store serial times
 pps_T = [0]*len(contentsTxt)	 	# store pps times
-parts = 2
 oset_sert = 2
 oset_ppst = 3
 
@@ -76,19 +76,19 @@ oset_ppst = 3
 for row in range(len(dataRow)):
 	line = contentsTxt[row]
 	commaLoc,commaLoc2 = 0,0
-	for col in range(parts):
-		if (col==parts-1):
+	for col in range(partst):
+		if (col==partst-1):
 			commaLoc2 = len(line)
 		else:
 			commaLoc2 = commaLoc+line[commaLoc:].index(',')
-		dataRow[row][col+parts] = int(line[commaLoc:commaLoc2])
+		dataRow[row][col+partsm] = int(line[commaLoc:commaLoc2])
 		commaLoc = commaLoc2+1
 		
 		
-dataCol = [[0]*len(dataRow) for i in range(2*parts)]
+dataCol = [[0]*len(dataRow) for i in range(partsm+partst)]
 
 for row in range(len(dataRow)):
-	for col in range(2*parts):
+	for col in range(partsm+partst):
 		dataCol[col][row] = dataRow[row][col]
 
 if (end=="end"):
@@ -98,12 +98,14 @@ dataRow = dataRow[start:end]
 
 # find quality types in data
 	
-pspst_dT = [(dataCol[oset_ser][i]-dataCol[oset_pps][i])-(dataCol[oset_sert][i]-dataCol[oset_ppst][i])
+pspst_dT = [(dataCol[oset_serm][i]-dataCol[oset_ppsm][i])-(dataCol[oset_sert][i]-dataCol[oset_ppst][i])
 			for i in range(len(dataRow))]
+ppsmserm_dT = [dataCol[oset_serm][i]-dataCol[oset_ppsm][i] for i in range(len(dataRow))]
+ppstsert_dT = [dataCol[oset_sert][i]-dataCol[oset_ppst][i] for i in range(len(dataRow))]
 
-pltDat = [pspst_dT]
-savDat = ["ppsDiff"]
-titDat = ["pps-serial trigger-measurement"]
+pltDat = [pspst_dT , ppsmserm_dT, ppstsert_dT]
+savDat = ["ppsDiff","ppsmserm"  , "ppstsert"]
+titDat = ["pps-serial trigger-measurement","pps-serial measurement","pps-serial trigger"]
 
 def GenerateDist(histData_, binMin_, binMax_, binWidth_):
 	binWidth_ = int(round(binWidth_))
