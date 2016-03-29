@@ -19,6 +19,9 @@ volatile uint32_t serMilli = 0;
 volatile uint32_t serMilliLast = 0;
 volatile uint32_t serMilli_ = 0;
 
+byte count = 0;
+byte target = 20;
+
 // SD Card
 SdFat sd;
 SdFile logfile;
@@ -153,7 +156,7 @@ void InitialiseSDFile()
 
 void loop()
 {
-  if (millis()>ppsMilliLast+1000 && fix)
+  if (millis()>ppsMilliLast+2000 && fix)
   {
     Serial.println("nofix");
     fix = false;
@@ -171,9 +174,20 @@ void loop()
       logfile.println(ppsMilliLast);
       logfile.flush();
     }
+    ppsTrig = false;
+    serTrig = false;
     fix = true;
     digitalWrite(pinLedFix, 1);
   }
+  if (count>target)
+  {
+    bRes.UpdateState();
+    count=0;
+  }
+  if (bRes.GetState()==1)
+    WRITE_RESTART(0x5FA0004);
+    
+  count++;
 }
 
 void GetSerTime()
