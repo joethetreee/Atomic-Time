@@ -1,8 +1,9 @@
 import numpy as np
+import matplotlib as mplt
 import matplotlib.pyplot as plt
 filename = "GPSMIL33ChckdCor"
 
-contents = open(filename+".txt", mode='r')
+contents = open("../../Results/"+filename+".txt", mode='r')
 contentsTxt = contents.readlines()
 contents.close()
 
@@ -56,8 +57,10 @@ for i in range(len(allan_x)):
 ardError_y = [1]*len(allan_x)
 for i in range(len(ardError_y)):
 	ardError_y[i] = 1
+
+fig = plt.figure(figsize=(10,6))
+mplt.rcParams.update({'font.size': 12})	
 	
-fig = plt.figure()
 ax1 = fig.gca()
 ax2 = fig.gca()
 ser_allan_ser, = ax1.plot(np.log(allan_x), np.log(allan_sery))

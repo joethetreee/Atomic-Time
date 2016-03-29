@@ -20,7 +20,7 @@ import numpy as np
 import matplotlib as mplt
 import matplotlib.pyplot as plt
 import KalmanFilter as klm
-filename = "GPSMIL37ChckdCor"
+filename = "GPSMIL33ChckdCor"
 
 # extract data into arrays
 
@@ -48,13 +48,12 @@ pps_T = pps_T[start:end]
 
 serE_T = [0]*len(ser_T)	 	# expected time of serial arrival
 covU_T = [0]*len(ser_T)	 	# expected uncertainty
-ardU_t = 0.5				# uncertainty in arduino times
+ardU_t = 0.0005				# uncertainty in arduino times
 ardD_t = (pps_T[-1]-pps_T[0])/(len(pps_T)-1)-1000	# arduino drift per millisecond (from post-analysis) - defined as ard_ms in 1s - 1000
 serU_t = 150			 	# uncertainty in gps serial arrival times
 	
 covU_T[0] = 100
 serE_T[0] = ser_T[0]
-
 for i in range(len(serE_T)-1):
 	serE_T[1+i], covU_T[1+i] = klm.KalFilIter(serE_T[i], 1000+ardD_t, ser_T[1+i], covU_T[i], ardU_t, serU_t)
 	
@@ -131,5 +130,5 @@ params = {'legend.fontsize': 18}
 plt.rcParams.update(params)    # the legend text fontsize
 plt.annotate("std dev "+str(int(round(np.std(serser_dT),0)))+
 	 " --> "+str(round(np.std(serEserE_dT),1))+" ms", xy=(0.05, 0.95), xycoords='axes fraction')
-plt.savefig("../../Results/"+filename+"serserKalman("+str(start)+"-"+str(end)+").png",dpi=400)
-plt.savefig("../../Results/"+filename+"serserKalman("+str(start)+"-"+str(end)+").svg")
+#plt.savefig("../../Results/"+filename+"serserKalman("+str(start)+"-"+str(end)+").png",dpi=400)
+#plt.savefig("../../Results/"+filename+"serserKalman("+str(start)+"-"+str(end)+").svg")

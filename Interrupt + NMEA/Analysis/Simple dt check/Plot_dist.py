@@ -12,7 +12,7 @@ Plot distributions
 import numpy as np
 import matplotlib as mplt
 import matplotlib.pyplot as plt
-filename = "GPSMIL12ChckdCor"
+filename = "GPSMIL33ChckdCor"
 normalise = False
 
 oset_GGA = 0 				# offset of GGA sentence
