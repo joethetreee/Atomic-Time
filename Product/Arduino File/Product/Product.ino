@@ -362,8 +362,7 @@ void RecordSerial()
 
           if (!initialFilter)
           {
-            //double meas_t = double( (uint32_t((serMilliLast-osCur)*1000)-uint32_t(sec_xf[0]*1000))/1000L );    // deal with roll over
-            double meas_dt = double( (uint32_t((serMilliLast)*1000)-uint32_t(sec_xf[0]*1000))/1000L );             // deal with roll over
+            double meas_t = double( (uint32_t((serMilliLast-osCur)*1000)-uint32_t(sec_xf[0]*1000))/1000L );    // deal with roll over
             //long pred_dt = sec_dxp-(osCur-osPrev);
             double pred_dt = sec_dxp;
             if (abs(pred_dt-meas_dt)>600)   // if there is a large diff. between prediction and measurement signals may have been missed. Restart filter to avoid errors
