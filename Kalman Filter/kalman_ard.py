@@ -169,7 +169,7 @@ cb = mpl.colorbar.ColorbarBase(ax2, cmap = cmap, norm = norm, spacing = 'proport
 # Axis titles
 ax.set_title("Kalman Filtered Predicted PPS as a Function of Connected Satellites")
 ax.set_xlabel("Sample")
-ax.set_ylabel("GPS PPS - Kalman PPS Offset")
+ax.set_ylabel("GPS PPS - Kalman PPS Offset (ms)")
 ax.set_xlim(0, len(kalResults))
 ax.set_ylim(150, 350)
 ax.text(0.05, 0.9, "Standard Deviation = " + str(round(np.std(kalResults), 2)) + "ms", transform = ax.transAxes)
@@ -190,7 +190,7 @@ cb = mpl.colorbar.ColorbarBase(ax2, cmap = cmap, norm = norm, spacing = 'proport
 # Axis titles
 ax.set_title("Kalman Filtered Predicted PPS with Satellite Time Offset Average")
 ax.set_xlabel("Sample")
-ax.set_ylabel("GPS PPS - Kalman PPS Offset")
+ax.set_ylabel("GPS PPS - Kalman PPS Offset (ms)")
 ax.set_xlim(0, len(kalResultsPPS))
 ax.set_ylim(150, 350)
 ax.text(0.05, 0.9, "Standard Deviation = " + str(round(np.std(kalResultsPPS), 2)) + "ms", transform = ax.transAxes)
@@ -206,7 +206,7 @@ fig, ax = plt.subplots(1, 1, figsize = (15, 10))
 ax.set_xlim(200, 400)
 ax.set_title("Serial - PPS Time Offset Distribution")
 ax.set_xlabel("Time Offset (ms)")
-ax.set_ylabel("Freqency")
+ax.set_ylabel("Frequency")
 ax.text(0.05, 0.88, "Using GPSMIL37ChckdCor.txt dataset", transform = ax.transAxes)
 
 # create a second axes for the colorbar
@@ -225,9 +225,9 @@ plt.show()
 """ Plot the kalman PPS - kalmanPPS time deltas distribution """
 fig, ax = plt.subplots(1, 1, figsize = (15, 10))
 ax.set_xlim(np.nonzero(ppsDeltas)[0][0] - 5, np.nonzero(ppsDeltas)[0][-1] + 15)
-ax.set_title("Kalman PPS - Kalman PPS Time Delta Distribution")
+ax.set_title("Kalman PPS - Kalman PPS Time Delta Distribution Average")
 ax.set_xlabel("Time Delta (ms)")
-ax.set_ylabel("Freqency")
+ax.set_ylabel("Frequency")
 ax.text(0.05, 0.88, "Using GPSMIL37ChckdCor.txt dataset", transform = ax.transAxes)
 
 ax.plot(range(len(deltas)), deltas, color = "red", label = "Base Kalman")
