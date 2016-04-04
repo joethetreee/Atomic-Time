@@ -17,6 +17,7 @@ import numpy as np
 import matplotlib as mplt
 import matplotlib.pyplot as plt
 import math as mth
+from matplotlib import ticker
 
 filename = "KL1PRD09ChkCor"	
 
@@ -32,6 +33,11 @@ dataRow = [[0]*parts for i in range(len(contentsTxt))]
 oset_ser = 0
 oset_pps = 1
 oset_est = 2
+
+linear = True
+linMin = 1
+linMax = 10
+linStep = 1
 
 start = 0
 end = "end"
@@ -88,6 +94,9 @@ alNum = int(round(mth.log(alMax/alMin,alFac)))
 
 allan_x = [int(alMin*(alFac**i)) for i in range(alNum+1)]
 
+if (linear):
+	allan_x = list(range(linMin, linMax+1, linStep))
+
 ppspps_Allan = allan_x[:]
 serser_Allan = allan_x[:]
 k1ek1e_Allan = allan_x[:]
@@ -141,46 +150,52 @@ titDat = ["PPS-PPS"     ,"Serial-serial","Kalman-Kalman","PPS-serial","PPS-Kalma
 mplt.rcParams.update({'font.size': 14})
 for i in range(len(pltDat)):
 	
-	for k in range(1,2,1):		# start from 0 to plot non-log
-	
-		data = pltDat[i]
-		name = savDat[i]
-		title = titDat[i]
-		datax = allan_x
-				
-		print(title, "min", min(data), data.index(min(data)), "max", max(data), data.index(max(data)))
-		
-		fig = plt.figure(figsize=(11,6))
-		y_formatter = mplt.ticker.ScalarFormatter(useOffset=False)
-		axes = plt.axes()
+	data = pltDat[i]
+	name = savDat[i]
+	title = titDat[i]
+	datax = allan_x
 			
-		plt.plot(allan_x,data, color="k")
-		plt.title("Allan deviation of "+title)
-		plt.xlabel("Order")
-		plt.ylabel("Allan deviation / fractional")
+	print(title, "min", min(data), data.index(min(data)), "max", max(data), data.index(max(data)))
+	
+	fig = plt.figure(figsize=(11,6))
+	y_formatter = mplt.ticker.ScalarFormatter(useOffset=False)
+	axes = plt.axes()
 		
-		if (k==0):
-			# find a measure of spread of data
-			# find order of range
-			dataRange = max(data)-min(data)
-			order = 1
-			while(order>dataRange):
-				order/=10
-			while(order<dataRange):
-				order*=10
-			if (order>1):	order/=10
+	plt.title("Allan deviation of "+title)
+	plt.xlabel("Order")
+	plt.ylabel("Allan deviation / fractional")
+	ax = plt.gca()
+	#ax.get_xaxis().get_major_formatter().set_scientific(False)
+			
+		
+	if (linear):
+		# flind a measure of spread of data
+		# find order of range
+		dataRange = max(data)-min(data)
+		order = 1
+		while(order>dataRange):
 			order/=10
+		while(order<dataRange):
+			order*=10
+		if (order>1):	order/=10
+		order/=10
+			
+		#plt.ylim(int(min(data)/order-1)*order, int(max(data)/order+1)*order)
+		plt.yscale('log')
+		plt.scatter(allan_x,data, color="k", marker='x')
+		ax.xaxis.set_major_formatter(ticker.FormatStrFormatter("%d"))
+		plt.xlim([linMin-0.1*linStep,linMax+0.1*linStep])
+		plt.xticks(datax)
+			
+	else:
+		plt.yscale('log')
+		plt.xscale('log')
+		plt.scatter(allan_x,data, color="k", marker='x')
 				
-			plt.ylim(int(min(data)/order-1)*order, int(max(data)/order+1)*order)
-			axes = plt.axes()
-			axes.yaxis.set_major_formatter(y_formatter)
-		else:
-			plt.yscale('log')
-			plt.xscale('log')
-				
-		saveFileNameLog = ""
-		if (k==1):	saveFileNameLog = "Log"
-		saveFileName = filename+"_"+name+saveFileNameLog+"("+str(start)+"-"+str(end)+")"
-		plt.savefig("../../Results/"+saveFileName+".png", dpi=400)
-		plt.savefig("../../Results/"+saveFileName+".svg")
-		plt.show()
+	saveFileNameLog = ""
+	if (linear):	saveFileNameLog = str(linMin)+"-"+str(linMax)
+	else:	"Log"
+	saveFileName = filename+"_"+name+"("+str(start)+"-"+str(end)+")_"+saveFileNameLog
+	plt.savefig("../../Results/"+saveFileName+".png", dpi=400)
+	plt.savefig("../../Results/"+saveFileName+".svg")
+	plt.show()
