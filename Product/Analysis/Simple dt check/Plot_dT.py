@@ -19,7 +19,7 @@ import numpy as np
 import matplotlib as mplt
 import matplotlib.pyplot as plt
 
-filename = "KL1PRD00ChkCor"	
+filename = "KL1PRD09ChkCor"	
 
 contents = open("../../results/" + filename + ".txt", mode='r')
 contentsTxt = contents.readlines()
@@ -46,20 +46,21 @@ for row in range(len(dataRow)):
 			commaLoc2 = len(line)
 		else:
 			commaLoc2 = commaLoc+line[commaLoc:].index(',')
-		dataRow[row][col] = int(line[commaLoc:commaLoc2])
+		try:	dataRow[row][col] = int(line[commaLoc:commaLoc2])
+		except ValueError:	dataRow[row][col] = float(line[commaLoc:commaLoc2])
 		commaLoc = commaLoc2+1
-		
-dataCol = [[0]*len(dataRow) for i in range(parts)]
-
-for row in range(len(dataRow)):
-	for col in range(parts):
-		dataCol[col][row] = dataRow[row][col]
 
 if (end=="end"):
 	end = len(dataRow)
 end = min(end, len(dataRow))
 dataRow = dataRow[start:end]
 
+		
+dataCol = [[0]*len(dataRow) for i in range(parts)]
+
+for row in range(len(dataRow)):
+	for col in range(parts):
+		dataCol[col][row] = dataRow[row][col]
 # find quality types in data
 	
 serser_dT = [dataCol[oset_ser][i+1]-dataCol[oset_ser][i] for i in range(len(dataRow)-1)]
@@ -96,12 +97,14 @@ for i in range(len(pltDat)):
 	# find order of range
 	dataRange = max(data)-min(data)
 	order = 1
+	while(order>dataRange):
+		order/=10
 	while(order<dataRange):
 		order*=10
-	order/=10
-	if (order>1):	order/=10
-		
-	plt.ylim(int(min(data)/order-1)*order, int(max(data)/order+1)*order)
+	order = order/100
+	order_i = int(round(np.log10(order)))
+	
+	plt.ylim( round((min(data)/order-1)*order,-order_i), round((max(data)/order+1)*order,-order_i) )
 	axes = plt.axes()
 	axes.yaxis.set_major_formatter(y_formatter)
 	
@@ -111,4 +114,5 @@ for i in range(len(pltDat)):
 	saveFileName = filename+"_"+name+"("+str(start)+"-"+str(end)+")"
 	plt.savefig("../../Results/"+saveFileName+".png", dpi=400)
 	plt.savefig("../../Results/"+filename+"_"+name+"("+str(start)+"-"+str(end)+").svg")
+	plt.show()
 	plt.clf()

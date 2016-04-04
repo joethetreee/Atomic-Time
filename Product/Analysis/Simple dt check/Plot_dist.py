@@ -19,7 +19,7 @@ import numpy as np
 import matplotlib as mplt
 import matplotlib.pyplot as plt
 
-filename = "KL1PRD00ChkCor"	
+filename = "KL1PRD09ChkCor"	
 
 contents = open("../../results/" + filename + ".txt", mode='r')
 contentsTxt = contents.readlines()
@@ -46,19 +46,19 @@ for row in range(len(dataRow)):
 			commaLoc2 = len(line)
 		else:
 			commaLoc2 = commaLoc+line[commaLoc:].index(',')
-		dataRow[row][col] = int(line[commaLoc:commaLoc2])
+		dataRow[row][col] = float(line[commaLoc:commaLoc2])
 		commaLoc = commaLoc2+1
+
+if (end=="end"):
+	end = len(dataRow)
+end = min(end, len(dataRow))
+dataRow = dataRow[start:end]
 		
 dataCol = [[0]*len(dataRow) for i in range(parts)]
 
 for row in range(len(dataRow)):
 	for col in range(parts):
 		dataCol[col][row] = dataRow[row][col]
-
-if (end=="end"):
-	end = len(dataRow)
-end = min(end, len(dataRow))
-dataRow = dataRow[start:end]
 
 # find quality types in data
 	
@@ -102,18 +102,30 @@ for i in range(len(pltDat)):
 	# find order of range
 	dataRange = max(data)-min(data)
 	order = 1
+	while(order>dataRange):
+		order/=10
 	while(order<dataRange):
 		order*=10
-	order = max(10,order/10)
-	if (order>1):	order/=10
+	order = order/100
+	order_i = int(round(np.log10(order)))
 		
-	(binVals, binMids) = GenerateDist(data, int(min(data)/order-1)*order, int(max(data)/order+1)*order, 1)
+	spacing = 1
+	if (order<1): spacing = order/50
+	stdDev = np.std(data)
+	j=0
+	stdDev_ = round(stdDev,j)
+	while(stdDev_==0 and stdDev>0.00001):
+		stdDev_ = round(stdDev,j+1)
+		j+=1
+	if(j==0):	stdDev_ = int(stdDev_)
+	
+	(binVals, binMids) = GenerateDist(data, int(min(data)/order-1)*order, int(max(data)/order+1)*order, spacing)
 	plt.plot(binMids, binVals, color = "black")
 	plt.title("Distribution of "+title+" time differences")
 	plt.xlabel("Time difference /ms")
 	plt.ylabel("Probability density")
 	plt.annotate("Average: "+str(round(np.average(data),1))+" ms;  Std dev: "+
-			str(int(round(np.std(data),0)))+" ms", xy=(0.05, 0.95), xycoords='axes fraction')
+			str(stdDev_)+" ms", xy=(0.05, 0.95), xycoords='axes fraction')
 	plt.savefig("../../Results/"+filename+"_"+name+"_dist.png", dpi=400)
 	plt.savefig("../../Results/"+filename+"_"+name+"_dist.svg")
 	plt.show()

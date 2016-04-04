@@ -1,0 +1,3 @@
+Trigger the teensy (which is running the usual box code) using arduino to replace GPS's PPS, serial outputs
+
+Compare the arduino's times to teeny's times to work out whether the teensy's timing is performing well while running other code
