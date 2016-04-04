@@ -51,13 +51,16 @@ bool firstMessageSet = true;                       // don't send the first one -
 bool reading = false;
 
 
-volatile uint32_t ppsMilli = 0;
-volatile uint32_t ppsMilliLast = 0;
-volatile uint32_t ppsMilli_ = 0;
+elapsedMillis myMillis = millis();             // clock time which updates automatically + handles rollover
+elapsedMicros myMicros = micros();             // clock time which updates automatically + handles rollover
+//elapsedMicros myMicros = 4285000000;             // clock time which updates automatically + handles rollover
+volatile uint32_t ppsMicro = 0;
+volatile uint32_t ppsMicroLast = 0;
+volatile uint32_t ppsMicro_ = 0;
 
-volatile uint32_t serMilli = 0;
-volatile uint32_t serMilliLast = 0;
-volatile uint32_t serMilli_ = 0;
+volatile uint32_t serMicro = 0;
+volatile uint32_t serMicroLast = 0;
+volatile uint32_t serMicro_ = 0;
 
 // initialize the library with the numbers of the interface pins
 LCDFController lcd(pinLCDRS, pinLCDRW, pinLCDEn, pinLCDD4, pinLCDD5, pinLCDD6, pinLCDD7, 16, 2, lcdTimeUnit, lcdTimeRefresh);
@@ -74,12 +77,12 @@ unsigned long timeGPSStream_ard;                        // arduino time at start
 // filter outputs are arrays of multiple variables; the first is the current second prediction, the next are successive predictions from second length alone
 // this is needed to deal with situations in which the filter predicts a time in the past (we estimate a second ahead to fix this)
 #define PRED_NUM 3                                      // number of predictions to make
-unsigned long sec_xf[PRED_NUM];                         // Kalman prediction of next second in Arduino time (in milliseconds)
-float secRem_xf = 0;                                    // carries the remainder of prediction (<1ms)
-float sec_uf[PRED_NUM];                                 // uncertainty in Kalman prediction
-int sec_um = 50;                                        // uncertainty of timing from GPS receiver
-float sec_dxp = 1000;                                    // prediction of second length
-float sec_up = 0.5;                                     // uncertainty in prediction
+uint32_t sec_xf[PRED_NUM];                         // Kalman prediction of next second in Arduino time (in microseconds to the nearest complete millisecond)
+float secRem_xf = 0;                               // carries the remainder of prediction in microseconds (float just for compatability)
+float sec_uf[PRED_NUM];                            // uncertainty in Kalman prediction in microseconds (float just for compatability)
+uint32_t sec_um = 50000;                           // uncertainty of timing from GPS receiver
+uint32_t sec_dxp = 999985;                         // prediction of second length
+uint32_t sec_up = 1000;                            // uncertainty in prediction
 
 GPSInfo gpsInfo;                                        // class used for interpreting GPS NMEA data
 TimerTarget pulseTimer(millisecond, pulseLen);          // timer for outputting pulses
@@ -115,7 +118,7 @@ void error(uint8_t errno)
           if (bRes.GetState()==1)
             WRITE_RESTART(0x5FA0004);
             
-        digitalWrite(pinLedFix, (k+1)%2);
+        digitalWriteFast(pinLedFix, (k+1)%2);
         ledErrDelay.Start(100);
       }
       // increment k (turn on->off or vice versa) and increment i
@@ -157,7 +160,7 @@ void error(uint8_t errno)
 //  for (byte k=0; k<2; k++)
 //  {
 //    ledErrBlink.Start();
-//    digitalWrite(pin, k);
+//    digitalWriteFast(pin, k);
 //    while(!ledErrBlink.Check());
 //    ledErrBlink.reset();
 //  }
@@ -175,6 +178,8 @@ void setup()
   pinMode(pinSDCS, OUTPUT);
   pinMode(pinPpsOut, OUTPUT);
   pinMode(pinTest, OUTPUT);
+
+  digitalWriteFast(pinLedFix, LOW);
   
   if (Serial1)
   {
@@ -201,7 +206,7 @@ void InitialiseSDFile()
     error(2);
   }
   char filename[15];
-  strcpy(filename, "TSTPRD00.TXT");
+  strcpy(filename, "KL1PRD00.TXT");
   for (uint8_t i = 0; i < 100; i++)
   {
     filename[6] = '0' + i/10;
@@ -288,7 +293,6 @@ void RecordSerial()
       {
         senStore[senNum][dataPos] = dataByte;
         dataPos++;
-        Serial.print(dataByte);
       }
       if (dataPos == 7)
       {
@@ -319,11 +323,7 @@ void RecordSerial()
       if (firstMessageSet)
       {
         firstMessageSet = false;
-        digitalWrite(pinTest, HIGH);
-//        Serial.print("Set pin");
-//        Serial.print(pinTest);
-//        Serial.print(" ");
-//        Serial.println(HIGH);
+        digitalWriteFast(pinTest, HIGH);
       }
       else
       {
@@ -346,22 +346,23 @@ void RecordSerial()
         else
         {
           timeGPSStream_act = gpsInfo.GetTime();
-          timeGPSStream_ard = serMilliLast;
+          timeGPSStream_ard = serMicroLast;
           printTime(EncodeTime(timeGPSStream_act));
           UpdateFix(gpsInfo.CheckFix());
           UpdateSatNum(gpsInfo.GetSatNum());
 
           TimeEnc theTime = EncodeTime(timeGPSStream_act);
-          int osCur = GetSatOffset(satNum);
-          int osPrev = GetSatOffset(satNumPrev);
-          int osUncert = GetSatUncert(satNum);
+          uint32_t osCur = GetSatOffset(satNum)*1000;
+          uint32_t osPrev = GetSatOffset(satNumPrev)*1000;
+          uint32_t osUncert = GetSatUncert(satNum)*1000;
 
           if (!initialFilter)
           {
-            float meas_t = float(float(serMilliLast)-float(sec_xf[0])-osCur);
-            //long pred_dt = sec_dxp-(osCur-osPrev);
-            long pred_dt = sec_dxp;
-            if (abs(pred_dt-meas_t)>600)   // if there is a large diff. between prediction and measurement signals may have been missed. Restart filter to avoid errors
+            if (serialActive)
+              Serial.println();
+            uint32_t meas_dt = uint32_t(serMicroLast-osCur-sec_xf[0]);
+            uint32_t pred_dt = sec_dxp;
+            if (abs(int32_t(pred_dt-meas_dt))>600000)   // if there is a large diff. between prediction and measurement signals may have been missed. Restart filter to avoid errors
             {
               initialFilter = true;
               if (serialActive)
@@ -369,62 +370,102 @@ void RecordSerial()
                 Serial.print("pred_meas error ");
                 Serial.print(pred_dt);
                 Serial.print(",");
-                Serial.println(meas_t);
+                Serial.print(meas_dt);
+                Serial.print(";  ");
+                Serial.print(serMicroLast);
+                Serial.print(",");
+                Serial.print(osCur);
+                Serial.print(",");
+                Serial.println(sec_xf[0]);
               }
               if (sdActive)
               {
                 logfile.print("pred_meas error ");
-                logfile.print(sec_xf[0]+pred_dt);
+                logfile.print(pred_dt/1000);
                 logfile.print(",");
-                logfile.println(meas_t);
+                logfile.println(meas_dt/1000);
                 logfile.flush();
               }
             }
             else
-              KalFilIter<float>(secRem_xf, float(pred_dt), meas_t, sec_uf[0], sec_up, osUncert);
+            {
+              KalFilIter<float>(secRem_xf, float(pred_dt), float(meas_dt), sec_uf[0], float(sec_up), float(osUncert));
+            }
           }
           else                    // if this is the very first filter we have run we won't be able to use Kalman filter -- instead use signal time only
           {
-            sec_xf[0] = serMilliLast-osCur;
+            sec_xf[0] = serMicroLast-osCur;
             secRem_xf = 0;
             sec_uf[0] = osUncert;
             initialFilter = false;
+            Serial.print("initial ");
+            Serial.print(serMicroLast);
+            Serial.print(",");
+            Serial.print(osCur);
+            Serial.print(",");
+            Serial.println(sec_xf[0]);
           }
 //          Serial.print("secRem_xf: ");
 //          Serial.println(secRem_xf);
           
-          sec_xf[0] += int(secRem_xf);
-          secRem_xf -= int(secRem_xf);
+          sec_xf[0] = uint32_t(sec_xf[0]+int(secRem_xf/1000)*1000);
+          secRem_xf -= int(secRem_xf/1000)*1000;
 
           for (int i=1; i<PRED_NUM; i++)           // make next timing predictions
           {
-            sec_xf[i] = sec_xf[0]+sec_dxp*i;
-            sec_uf[i] = sec_uf[0]+sec_up*i;
+            sec_xf[i] = uint32_t(sec_xf[0]+sec_dxp*i);
+            sec_uf[i] = uint32_t(sec_uf[0]+sec_up*i);
           }
           pulseEstArmed = 1;
 
-          Serial.println();
-          Serial.print(serMilliLast);
-          Serial.print(",");
-          Serial.print(ppsMilliLast);
-          Serial.print(",");
-          Serial.print(sec_xf[0]);
-          Serial.print(",");
-          Serial.print(serMilliLast-ppsMilli);
-          Serial.print(",");
-          Serial.print(serMilliLast-sec_xf[0]);
-          Serial.print(",");
-          Serial.println(satNum);
+          if (serialActive && Serial)
+          {
+            Serial.print(serMicroLast/1000);
+            Serial.print(",");
+            Serial.print(ppsMicroLast/1000);
+            Serial.print(".");
+            // decimal
+            int dec = ppsMicroLast-uint32_t(ppsMicroLast/1000)*1000;
+            int pow10 = 100;
+            for (byte i=0; i<3; i++)
+            {
+              if (pow10<=dec)
+                break;
+              Serial.print('0');
+              pow10/=10;
+            }
+            Serial.print(dec);
+            Serial.print(",");
+            Serial.print(sec_xf[0]/1000);
+            Serial.print(",");
+            Serial.print((serMicroLast-ppsMicroLast)/1000.);
+            Serial.print(",");
+            Serial.print((serMicroLast-sec_xf[0])/1000.);
+            Serial.print(",");
+            Serial.println(satNum);
+          }
           
 
           // Write to SD card
           if (sdActive)
           {
-            logfile.print(serMilliLast);
+            logfile.print(serMicroLast/1000);
             logfile.print(",");
-            logfile.print(ppsMilliLast);
+            logfile.print(ppsMicroLast/1000);
+            logfile.print(".");
+            // decimal
+            int dec = ppsMicroLast-uint32_t(ppsMicroLast/1000)*1000;
+            int pow10 = 100;
+            for (byte i=0; i<3; i++)
+            {
+              if (pow10<=dec)
+                break;
+              logfile.print('0');
+              pow10/=10;
+            }
+            logfile.print(dec);
             logfile.print(",");
-            logfile.print(sec_xf[0]);
+            logfile.print(sec_xf[0]/1000);
             logfile.print(",");
             logfile.println(satNum);
             logfile.flush();
@@ -462,35 +503,43 @@ void UpdateOutput()
 }
 
 
-void GetSerTime() {
-  serMilli = millis();
-  if (serMilli > serMilliLast+250 && (serMilli > serMilli_+200)) {
-    serMilliLast = serMilli;
+void GetSerTime()
+{
+  serMicro = myMicros;
+  if (uint32_t(serMicro-serMicroLast)>250000 && uint32_t(serMicro-serMicro_)>200000)
+  {
+    serMicroLast = serMicro;
   }
-  serMilli_ = serMilli;
+  serMicro_ = serMicro;
 }
 
-void GetPPSTime() {
-  ppsMilli = millis();
-  if (ppsMilli > ppsMilliLast+250) {
-    ppsMilliLast = ppsMilli;
+void GetPPSTime()
+{
+  ppsMicro = myMicros;
+  if (uint32_t(ppsMicro-ppsMicroLast)>250000 && uint32_t(ppsMicro-ppsMicro_)>200000)
+  {
+    ppsMicroLast = ppsMicro;
   }
+  ppsMicro_ = ppsMicro;
 }
 
 void CheckSecondTurn()
 {
-  unsigned long timeCur = millis();
   if (!ppsEmit && !initialFilter)      // check whether we are currently emitting
   {
-    if (timeCur >= sec_xf[PRED_NUM-1]) // check whether the last predicted second has turned (if so the Kalman filter wasn't called -- something wrong with message)
+    uint32_t timeCur = myMicros;
+    if (int32_t(timeCur-sec_xf[PRED_NUM-1])>=0) // check whether the last predicted second has turned (if so the Kalman filter wasn't called -- something wrong with message)
     {
       Serial.println();
       Serial.print("~~Missed second! ");
       Serial.print(timeCur);
-      Serial.print(", ");
-      Serial.print(sec_xf[0]);
-      Serial.print(", ");
-      Serial.println(sec_xf[1]);
+      Serial.print(" ; ");
+      for (byte i=0; i<PRED_NUM; i++)
+      {
+        Serial.print(sec_xf[i]);
+        Serial.print(",");
+      }
+      Serial.println();
       EmitPPS(true);
       // shift the next second's prediction into the current second, and use the expected second length to predict the next second
       sec_xf[0] = sec_xf[1];
@@ -499,12 +548,8 @@ void CheckSecondTurn()
       sec_uf[1] = sec_xf[0]+sec_up;
       pulseEstArmed = PRED_NUM-1;
     }
-    else if (timeCur >= sec_xf[pulseEstArmed])  // check whether the current second has turned
+    else if (int32_t(timeCur-sec_xf[pulseEstArmed])>=0)  // check whether the current second has turned
     {
-      Serial.print("Start emit at ");
-      Serial.print(timeCur);
-      Serial.print(",  sec_xf[1] at ");
-      Serial.println(sec_xf[1]);
       EmitPPS(true);
     }
   }
@@ -517,14 +562,17 @@ void CheckSecondTurn()
 
 void EmitPPS(bool emit)
 {
-  Serial.print("Emit ");
-  Serial.print(emit);
-  Serial.print(" time ");
-  Serial.println(millis());
+  if (serialActive)
+  {
+    Serial.print("Emit ");
+    Serial.print(emit);
+    Serial.print(" time ");
+    Serial.println(myMicros);
+  }
   
   ppsEmit = emit;
-  digitalWrite(pinLedPps, ppsEmit);
-  digitalWrite(pinPpsOut, ppsEmit);
+  digitalWriteFast(pinLedPps, ppsEmit);
+  digitalWriteFast(pinPpsOut, ppsEmit);
   if (emit)
   {
     pulseTimer.Start();
@@ -537,7 +585,7 @@ void EmitPPS(bool emit)
 void UpdateFix(bool fix_)
 {
   if (fix!=fix_)
-    digitalWrite(pinLedFix, fix_);
+    digitalWriteFast(pinLedFix, fix_);
   fix = fix_;
 }
 

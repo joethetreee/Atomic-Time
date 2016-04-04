@@ -1,22 +1,13 @@
 # -*- coding: utf-8 -*-
 """
-Created on Sun Nov 29 14:01:47 2015
+Created on Sun Apr  3 00:41:57 2016
 
 @author: Duncan
-
-plot differences in time
-used to check data
-
-input format:
-...
-<ser_time>,<pps_time>,<est_time>,...
-...
-
-doesn't matter which other lines are present; information extracted from t<><> row
-
 """
+
 import numpy as np
-import matplotlib as mplt
+import statsmodels.tsa.stattools as ts
+import KalmanFilter as klm
 import matplotlib.pyplot as plt
 
 filename = "KL1PRD09ChkCor"	
@@ -69,50 +60,43 @@ k1ek1e_dT = [dataCol[oset_est][i+1]-dataCol[oset_est][i] for i in range(len(data
 ppsk1e_dT = [dataCol[oset_est][i]-dataCol[oset_pps][i] for i in range(len(dataRow))]
 ppsser_dT = [dataCol[oset_ser][i]-dataCol[oset_pps][i] for i in range(len(dataRow))]
 
-pltDat = [serser_dT  , ppspps_dT  , k1ek1e_dT  , ppsk1e_dT  , ppsser_dT]
-savDat = ["serser_dT", "ppspps_dT", "k1ek1e_dT", "ppsk1e_dT", "ppsser_dT"]
-titDat = ["Consecutive serial", "Consecutive PPS",
-		"Consecutive single Kalman estimate", "PPS to single Kalman estimate", "PPS to serial"]
+klm_T = [dataCol[oset_ser][0]]*len(dataCol[oset_ser])
+klm_U = 1
+est_dT = 999.985
+est_U = 0.001
+meas_U = 40
+for i in range(len(klm_T)-1):
+	klm_T[1+i],klm_U = klm.KalFilIter(klm_T[i], est_dT, dataCol[oset_ser][1+i], klm_U, est_U, meas_U)
 
-mplt.rcParams.update({'font.size': 14})
+ppsklm_dT = [klm_T[i]-dataCol[oset_pps][i] for i in range(len(klm_T))]
+ppsklm_dT = ppsklm_dT[1000:]
+	
+plt.scatter(range(len(ppsklm_dT)),ppsklm_dT, linewidth=0, color='k', s=2)
+
+pltDat = [serser_dT  , ppspps_dT  , k1ek1e_dT  , ppsk1e_dT  , ppsser_dT, ppsklm_dT]
+savDat = ["serser_dT", "ppspps_dT", "k1ek1e_dT", "ppsk1e_dT", "ppsser_dT", "ppsklm_dT"]
+titDat = ["Consecutive serial", "Consecutive PPS",
+		"Consecutive single Kalman estimate", "PPS to single Kalman estimate", "PPS to serial", "PPS to new Klm"]
+
+#x=[0]*100
+#for i in range(len(x)):
+#	x[i] = i + (np.random.random()-0.5)*1
+#print(ts.adfuller(x))
+#
+#x=[0]*100
+#for i in range(len(x)):
+#	x[i] = i + (np.random.random()-0.5)*len(x)
+#print(ts.adfuller(x))
+#
+#x=[0]*100
+#for i in range(len(x)):
+#	x[i] = i + (np.random.random()-0.5)*len(x)*100
+#print(ts.adfuller(x))
+
 for i in range(len(pltDat)):
 	
 	data = pltDat[i]
 	name = savDat[i]
 	title = titDat[i]
 	
-	print(title, "min", min(data), data.index(min(data)), "max", max(data), data.index(max(data)))
-	
-	fig = plt.figure(figsize=(11,6))
-	y_formatter = mplt.ticker.ScalarFormatter(useOffset=False)
-	axes = plt.axes()
-		
-	plt.scatter(range(0,len(data),1),data, color="k", s=2, linewidth=0)
-	plt.title(title+" time difference")
-	plt.xlabel("Samples")
-	plt.ylabel("Time difference /ms")
-	plt.xlim(0,len(data))
-	
-	# find a measure of spread of data
-	# find order of range
-	dataRange = max(data)-min(data)
-	order = 1
-	while(order>dataRange):
-		order/=10
-	while(order<dataRange):
-		order*=10
-	order = order/100
-	order_i = int(round(np.log10(order)))
-	
-	plt.ylim( round((min(data)/order-1)*order,-order_i), round((max(data)/order+1)*order,-order_i) )
-	axes = plt.axes()
-	axes.yaxis.set_major_formatter(y_formatter)
-	
-	plt.annotate("Average: "+str(round(np.average(data),2))+" ms;  Std dev: "+
-			str(round(np.std(data),2))+" ms", xy=(0.05, 0.95), xycoords='axes fraction')
-			
-	saveFileName = filename+"_"+name+"("+str(start)+"-"+str(end)+")"
-	plt.savefig("../../Results/"+saveFileName+".png", dpi=400)
-	plt.savefig("../../Results/"+filename+"_"+name+"("+str(start)+"-"+str(end)+").svg")
-	plt.show()
-	plt.clf()
+	print(title, ts.adfuller(data))

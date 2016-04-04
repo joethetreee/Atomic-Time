@@ -45,9 +45,8 @@ extern bool sdActive;
 
 // PPS Distribution Offset Average from kalman_ard.py on GPSMIL37ChckdCor.txt dataset; do not have data for 0,1,2 satellites -- just filled in as appropriate
 #define SATDATA_NUM 12        // number of satellite connections with data
-// data from KL1PRD06   0,   1,   2,   3,   4,   5,   6,   7,   8,   9,  10,  11
-int satOffsets[12] = {184, 194, 201, 214, 226, 235, 243, 252, 272, 299, 302, 300};
-int satUncerts[12] = {23 , 8  , 10 , 12 , 12 , 12 , 13 , 16 , 21 , 23 , 25 ,  25 };
+int satOffsets[12] = {200, 205, 215, 224, 233, 245, 262, 281, 294, 304, 320, 303};
+int satUncerts[12] = {50 , 40 , 30 , 12 , 14 , 18 , 21 , 22 , 23 , 22 , 18 , 10 };
 float clockDriftSec = 0.0005; // estimate of clock drift per second
 
 // Software reset definitions
