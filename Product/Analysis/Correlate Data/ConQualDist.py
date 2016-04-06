@@ -19,8 +19,10 @@ import numpy as np
 import matplotlib as mplt
 import matplotlib.pyplot as plt
 from scipy.stats.stats import pearsonr
+mplt.rc('font', **{'family': 'serif', 'serif': ['Computer Modern']})
+mplt.rc('text', usetex=True)
 
-filename = "KL1PRD06ChkCor"	
+filename = "KL1PRD10ChkCor"	
 
 contents = open("../../results/" + filename + ".txt", mode='r')
 contentsTxt = contents.readlines()
@@ -82,7 +84,8 @@ for row in range(len(dataRow)):
 			commaLoc2 = len(line)
 		else:
 			commaLoc2 = commaLoc+line[commaLoc:].index(',')
-		dataRow[row][col] = int(line[commaLoc:commaLoc2])
+		try:	dataRow[row][col] = int(line[commaLoc:commaLoc2])
+		except ValueError:	dataRow[row][col] = float(line[commaLoc:commaLoc2])
 		commaLoc = commaLoc2+1
 
 if (end=="end"):
@@ -119,24 +122,16 @@ colA = [0]*len(ppsser_dT)
 for i in range(len(colA)):
 	colA[i] = rgb=colArray[qTypes.index(dataCol[oset_snum][i])][:3]
 	
-qTypesN = [0]*len(qTypes) 							# quality types normalised up to 1.0
-qTypesNZ = [0]*len(qTypes) 						# quality types normalised between 0.0->1.0
-qArrN = [0]*len(dataCol[oset_snum])
-qArrNZ = [0]*len(dataCol[oset_snum])
+qArr = [0]*len(dataCol[oset_snum])
 qMax = max(qTypes)
 qMin = min(qTypes)
-for i in range(len(qTypes)):
-	qTypesN[i] = qTypes[i]/qMax
-	qTypesNZ[i] = (qTypes[i]-qMin)/(qMax-qMin)
-for i in range(len(qArrN)):
-	qArrN[i] = dataCol[oset_snum][i]/qMax
-	qArrNZ[i] = (dataCol[oset_snum][i]-qMin)/(qMax-qMin)
+for i in range(len(qArr)):
+	qArr[i] = dataCol[oset_snum][i]
 	
 for i in range(len(pltDat)):
 	data = pltDat[i]
 	name = savDat[i]
 	title = titDat[i]
-	qArr = qArrN
 	
 	osetStart = len(dataCol[oset_snum])-len(data)
 	data_ = [[] for i in range(len(data))]
@@ -161,16 +156,18 @@ for i in range(len(pltDat)):
 	txt_leg = [str(i) for i in qTypes]
 	
 	# plot a scatter plot so we can get our colours for the colour bar (can't do with plt.plot); discard
-	qArrNZ_ = qArrNZ[osetStart:]
-	cbarPlot = plt.scatter(range(0,len(data),1),data,c=qArrNZ_, cmap=plt.cm.gist_rainbow,linewidth='0', s=8)
+	qArr_ = qArr[osetStart:]
+	cmap = plt.get_cmap('jet', np.max(qTypes)-np.min(qTypes)+1)
+	cbarPlot = plt.scatter(range(0,len(data),1),data,c=qArr_, cmap=cmap,linewidth='0', s=8 ,
+						vmin = np.min(qTypes)-.5, vmax = np.max(qTypes)+.5)
 	plt.clf()
 	fig = plt.figure(figsize=(11,6))
 	mplt.rcParams.update({'font.size': 14})
 
-	medianArr = [0]*len(qTypesNZ)
-	avgValx_type = [0]*len(qTypesNZ) 				# store the average value for each "delimiter"
-	avgValu_type = [0]*len(qTypesNZ) 				# store the std dev for each "delimiter"
-	for j in range(len(qTypesNZ)):
+	medianArr = [0]*len(qTypes)
+	avgValx_type = [0]*len(qTypes) 				# store the average value for each "delimiter"
+	avgValu_type = [0]*len(qTypes) 				# store the std dev for each "delimiter"
+	for j in range(len(qTypes)):
 		histData = data_[j]
 		binWidth = (binMax - binMin)/binNum
 		binEdges = np.linspace(binMin, binMax, binNum)
@@ -188,9 +185,9 @@ for i in range(len(pltDat)):
 		for i in range(len(binMids)):
 			binMids[i] = (binEdges[i]+binEdges[1+i])/2.0
 			
-		#print(qTypes[j])
-			
-		ser_leg[j] ,= plt.plot(binMids, binVals, color=plt.cm.gist_rainbow(qTypesNZ[j]))
+		norm = mplt.colors.Normalize(vmin=min(qTypes)-0.5, vmax=max(qTypes)+0.5)
+					
+		ser_leg[j] ,= plt.plot(binMids, binVals, color=plt.cm.jet(norm(qTypes[j])))
 		medianArr[j] = binMids[Median(binVals)]
 		tot=0
 		for i in range(len(binVals)):
@@ -205,25 +202,37 @@ for i in range(len(pltDat)):
 	print(pearsonr(medianArr, qTypes))
 	
 	ylim = plt.gca().get_ylim()
-	xlim = plt.gca().get_xlim()
-	
-	for j in range(len(qTypes)):
-		plt.annotate('sat# '+str(qTypes[j])+' avg '+str(round(avgValx_type[j],1))+' std '+str(round(avgValu_type[j],1))+' ms'
-		, xy=(0.5,0.1+0.8*j/len(qTypes)), xycoords='axes fraction')	
+	xlim = plt.gca().get_xlim()	
 		
 	plt.title("Dist. of "+title+" difference by satellite number")
 	plt.xlabel("Time difference /ms")
 	plt.ylabel("Frequency")
 	
-	cbarTicksTemp = np.linspace(min(qTypesNZ), max(qTypesNZ), len(qTypesNZ))
-	cbar = plt.colorbar(cbarPlot, ticks=cbarTicksTemp)
-	cbarTicksNew = np.linspace(min(qTypes), max(qTypes), len(qTypes), dtype = int)
-	cbar.ax.set_yticklabels(cbarTicksNew)  # horizontal colorbar
+	for j in range(len(qTypes)):
+		plt.annotate('satN '+str(qTypes[j])+' avg '+str(round(avgValx_type[j],1))+' std '+str(round(avgValu_type[j],1))+' ms'
+		, xy=(0.65,0.1+0.8*j/len(qTypes)), xycoords='axes fraction')	
 	
+	cbarTicksTemp = range(min(qTypes), max(qTypes)+1)
+	cbar = plt.colorbar(cbarPlot, ticks=cbarTicksTemp)
+	
+	plt.tight_layout()
 	saveFileName = filename+"_"+name+"_SatNum_dist"
-	plt.savefig("../../Results/"+saveFileName+".png",dpi=400)
-	plt.savefig("../../Results/"+saveFileName+".svg")
+	plt.savefig("../../Results/Useful/"+saveFileName+".pdf")
 	
 	plt.show()
 	
 	print(pearsonr(ppsser_dT, qArr))
+	
+	
+
+#x = list(range(N))
+#qArr = [np.random.randint(0,qN) for i in range(len(x))]
+#y = [qArr[i]*10 for i in range(len(x))]
+#
+#cmap = plt.get_cmap('RdBu', np.max(qTypes)-np.min(qTypes)+1)
+#cbarPlot = plt.scatter(x,y,c=qArr, cmap=cmap,linewidth='0', s=8 , vmin = np.min(qTypes)-.5, vmax = np.max(qTypes)+.5)
+#
+#cbarTicksTemp = range(min(qTypes), max(qTypes)+1)
+#cbar = plt.colorbar(cbarPlot, ticks=cbarTicksTemp)
+#cbarTicksNew = np.linspace(min(qTypes), max(qTypes), len(qTypes), dtype = int)
+#cbar.ax.set_yticklabels(cbarTicksNew)  # horizontal colorbar

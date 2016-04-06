@@ -20,7 +20,7 @@ import matplotlib as mplt
 import matplotlib.pyplot as plt
 from scipy.stats.stats import pearsonr
 
-filename = "KL1PRD06ChkCor"	
+filename = "KL1PRD10ChkCor"	
 
 contents = open("../../results/" + filename + ".txt", mode='r')
 contentsTxt = contents.readlines()
@@ -56,7 +56,8 @@ for row in range(len(dataRow)):
 			commaLoc2 = len(line)
 		else:
 			commaLoc2 = commaLoc+line[commaLoc:].index(',')
-		dataRow[row][col] = int(line[commaLoc:commaLoc2])
+		try:	dataRow[row][col] = int(line[commaLoc:commaLoc2])
+		except ValueError:	dataRow[row][col] = float(line[commaLoc:commaLoc2])
 		commaLoc = commaLoc2+1
 
 if (end=="end"):
@@ -94,13 +95,13 @@ for i in range(len(colA)):
 	colA[i] = rgb=colArray[qTypes.index(dataCol[oset_snum][i])][:4]
 	
 qTypesN = [0]*len(qTypes)
-qArrN = [0]*len(dataCol[oset_snum])
+qArr = [0]*len(dataCol[oset_snum])
 qMax = max(qTypes)
 qMin = min(qTypes)
 for i in range(len(qTypes)):
 	qTypesN[i] = (qTypes[i]-qMin)/(qMax-qMin)
-for i in range(len(qArrN)):
-	qArrN[i] = (dataCol[oset_snum][i]-qMin)/(qMax-qMin)
+for i in range(len(qArr)):
+	qArr[i] = dataCol[oset_snum][i]
 	
 
 mplt.rcParams.update({'font.size': 14})
@@ -109,12 +110,15 @@ for i in range(len(pltDat)):
 	data = pltDat[i]
 	name = savDat[i]
 	title = titDat[i]
-	qArr = qArrN
-	while(len(qArr)>len(data)):	qArr = qArr[1:]
+	qArr_ = qArr
+	while(len(qArr_)>len(data)):	qArr_ = qArr_[1:]
 
 	fig = plt.figure(figsize=(11,6))
 	
-	s = plt.scatter(range(0,len(data),1),data, c=qArr, cmap=plt.cm.gist_rainbow    ,    linewidth='0', s=2)
+	
+	cmap = plt.get_cmap('jet', np.max(qTypes)-np.min(qTypes)+1)
+	cbarPlot = plt.scatter(range(0,len(data),1),data,c=qArr_, cmap=cmap,linewidth='0', s=2 ,
+						vmin = np.min(qTypes)-.5, vmax = np.max(qTypes)+.5)
 	plt.xlim(0,len(data))
 	
 	# find a measure of spread of data
@@ -128,12 +132,9 @@ for i in range(len(pltDat)):
 		
 	plt.ylim(int(min(data)/order-1)*order, int(max(data)/order+1)*order)
 	
-	cbarTicksTemp = np.linspace(min(qTypesN), max(qTypesN), len(qTypesN))
-	cbar = plt.colorbar(s, ticks=cbarTicksTemp)
-	cbarTicksNew = np.linspace(min(qTypes), max(qTypes), len(qTypes), dtype = int)
-	print (cbarTicksTemp)
-	print(cbarTicksNew)
-	cbar.ax.set_yticklabels(cbarTicksNew)  # horizontal colorbar
+	cbarTicksTemp = range(min(qTypes), max(qTypes)+1)
+	cbar = plt.colorbar(cbarPlot, ticks=cbarTicksTemp)
+	
 	plt.title(title + " difference with satellite number")
 	plt.ylabel("difference in time / ms")
 	plt.xlabel("Samples (thousands)")
