@@ -104,7 +104,7 @@ tpps = int(t[1])
 sats = int(gga.split(",")[7])
 startSats = sats
 
-filter = KalmanFilter(arduinoUncertainty, gpsUncertainty, tser)
+filterKal = KalmanFilter(arduinoUncertainty, gpsUncertainty, tser)
 filterPPS = KalmanFilter(arduinoUncertainty, gpsUncertainty, tser)
 
 # Apply Kalman filter to data from Interrupt + NMEA dataset.
@@ -129,13 +129,13 @@ while i < len(data) - 1:
 	filterPPS.step(1000, tser - avgs[sats] + avgs[startSats])
 	
 	# Do a standard kalman filter
-	filter.step(1000, tser)
+	filterKal.step(1000, tser)
 	
 	# Add results to an array
-	kalResults.append(filter.currentStateEstimate - tpps)
+	kalResults.append(filterKal.currentStateEstimate - tpps)
 	kalResultsPPS.append(filterPPS.currentStateEstimate - tpps)
 	kalFilterPPS.append(filterPPS.currentStateEstimate)
-	kalFilter.append(filter.currentStateEstimate)
+	kalFilter.append(filterKal.currentStateEstimate)
 	
 	# Go to next measurement
 	i += 3
@@ -149,6 +149,26 @@ deltas = np.zeros(1100)
 for k in range(1, len(kalResultsPPS)):
 	ppsDeltas[kalFilterPPS[k] - kalFilterPPS[k - 1]] += 1
 	deltas[kalFilter[k] - kalFilter[k - 1]] += 1
+	
+print("\n")
+print("Kalman PPS Time Delta Statistics:")
+total = sum(filter(lambda a: a != 0, deltas))
+print("Total non-zero data points =", total)
+total2 = 0
+for i in range(999, 1001 + 1):
+	total2 += deltas[i]
+	print("dt =", i, "count =", deltas[i])
+print("{0}% in selected range.".format(round(total2 / total * 100, 3)))
+
+print("\n")
+print("Kalman PPS SV Time Delta Statistics:")
+total = sum(filter(lambda a: a != 0, ppsDeltas))
+print("Total non-zero data points =", total)
+total2 = 0
+for i in range(999, 1001 + 1):
+	total2 += ppsDeltas[i]
+	print("dt =", i, "count =", ppsDeltas[i])
+print("{0}% in selected range.".format(round(total2 / total * 100, 3)))
 	
   
 # Set the colour map
@@ -223,6 +243,18 @@ for i in range(len(distroResults)):
 plt.show()
 
 """ Plot the kalman PPS - kalmanPPS time deltas distribution """
+fig, ax = plt.subplots(1, 1, figsize = (15, 10))
+ax.set_xlim(np.nonzero(ppsDeltas)[0][0] - 5, np.nonzero(ppsDeltas)[0][-1] + 15)
+ax.set_title("Kalman PPS - Kalman PPS Time Delta Distribution")
+ax.set_xlabel("Time Delta (ms)")
+ax.set_ylabel("Frequency")
+ax.text(0.05, 0.88, "Using GPSMIL37ChckdCor.txt dataset", transform = ax.transAxes)
+
+ax.plot(range(len(deltas)), deltas, color = "red", label = "Base Kalman")
+ax.legend(loc = 0)
+ax.grid()
+
+""" Plot the kalman PPS - kalmanPPS time deltas distribution with GPS compensation comparison"""
 fig, ax = plt.subplots(1, 1, figsize = (15, 10))
 ax.set_xlim(np.nonzero(ppsDeltas)[0][0] - 5, np.nonzero(ppsDeltas)[0][-1] + 15)
 ax.set_title("Kalman PPS - Kalman PPS Time Delta Distribution Average")

@@ -6,7 +6,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-file = "KL2PPS58"
+file = "KL2PPS54"
 
 f = open("results/{0}".format(file + ".txt"), "r")
 dts = []
@@ -65,6 +65,7 @@ ax.set_title("Distribution of Successive Arduino Kalman PPS Time Deltas")
 ax.set_xlabel("KALPPS - KALPPS Time Delta (ms)")
 ax.set_ylabel("Frequency")
 ax.set_xlim(975, 1025)
+ax.set_ylim(0, max(histo) * 1.1)
 ax.grid()
 ax.text(0.05, 0.88, "Using {0}.txt dataset".format(file), transform = ax.transAxes)
 plt.show()
