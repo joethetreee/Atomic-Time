@@ -312,6 +312,8 @@ void RecordSerial()
   {
     if (firstNonLoop && !reading && senTerm)                 // check whether we have just received final sentence in list -- then enable interrupts
     {
+      attachInterrupt(digitalPinToInterrupt(pinGPSSerIn), GetSerTime, FALLING);
+      attachInterrupt(digitalPinToInterrupt(pinGPSPps), GetPPSTime, RISING);
       if (firstMessageSet)
         firstMessageSet = false;
       else
@@ -426,8 +428,6 @@ void RecordSerial()
     }
     if (firstNonLoop && !reading)
     {
-      attachInterrupt(digitalPinToInterrupt(pinGPSSerIn), GetSerTime, FALLING);
-      attachInterrupt(digitalPinToInterrupt(pinGPSPps), GetPPSTime, RISING);
       firstNonLoop = false;
       firstLoop = true;
     }

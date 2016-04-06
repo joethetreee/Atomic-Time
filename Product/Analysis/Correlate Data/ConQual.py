@@ -20,7 +20,7 @@ import matplotlib as mplt
 import matplotlib.pyplot as plt
 from scipy.stats.stats import pearsonr
 
-filename = "KL1PRD00ChkCor"	
+filename = "KL1PRD06ChkCor"	
 
 contents = open("../../results/" + filename + ".txt", mode='r')
 contentsTxt = contents.readlines()
@@ -58,6 +58,11 @@ for row in range(len(dataRow)):
 			commaLoc2 = commaLoc+line[commaLoc:].index(',')
 		dataRow[row][col] = int(line[commaLoc:commaLoc2])
 		commaLoc = commaLoc2+1
+
+if (end=="end"):
+	end = len(dataRow)
+end = min(end, len(dataRow))
+dataRow = dataRow[start:end]
 		
 dataCol = [[0]*len(dataRow) for i in range(parts)]
 

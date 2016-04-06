@@ -1,6 +1,8 @@
 import time
 import numpy as np
 import matplotlib.pyplot as plt
+#from decimal import *
+#getcontext().prec = 18
 
 """
 removes jumps caused by loss of GPS fix
@@ -13,9 +15,11 @@ Problem: after long PPS freezes/disconnect fixes there is sometimes a shift in P
 this could be caused by avgPPS not being correct at that time
 """
 
-filename = "KL1PRD05Chk"
+filename = "KL1PRD09Chk"
 
 
+
+parts = 4
 oset_ser = 0 			# offset line for serial timing
 oset_pps = 1 			# offset line for PPS data
 oset_est = 2 			# offset line for PPS estimate
@@ -46,45 +50,26 @@ contentsTxtCor = [0]*len(contentsTxt)
 i = 0
 j = 0
 delete = False 					 	# whether we must delete the current entry
-ser_Prev = 0 							# previous serial time
-pps_Prev = 0							# previous pps time
-while (i<len(contentsTxt)-period+1):	 		 	# while loop because for loop does not work as in C/C++ when modifying iterator in-loop!!!
-	print (i)
+serPrev = 0 							# previous serial time
+ppsPrev = 0							# previous pps time
+while (i<len(contentsTxt)-period+1):
 	line = contentsTxt[i]
-	print (line)
-	commaLoc = 0
-	for k in range(0,4):
-		if (k==3):
+	data = [0]*parts
+	commaLoc,commaLoc2 = 0,0
+	for col in range(parts):
+		if (col==parts-1):
 			commaLoc2 = len(line)
 		else:
-			try:
-				commaLoc2 = commaLoc+line[commaLoc:].index(',')
-			except IndexError:
-				print("ValError",line,i)
-				delete = True
-				break
-		val = line[commaLoc:commaLoc2]
-		try:
-			val = int(val)
-		except ValueError:
-			print("ValError",val)
-			delete = True
-			break
-		
-		ser_t,pps_t = 0,0
-		
-		if (k==oset_ser):
-			ser_t = val
-		elif (k==oset_pps):
-			pps_t = val
-			if (pps_t==0):			# starts out as being 0; if unchanged, no pps was detected
-				delete = True
-				break
-		
+			commaLoc2 = commaLoc+line[commaLoc:].index(',')
+		try:	data[col] = int(line[commaLoc:commaLoc2])
+		except ValueError:	data[col] = float(line[commaLoc:commaLoc2])
 		commaLoc = commaLoc2+1
 			
 	if (not delete): 		# check if the conctn is new -- check & remove new conctn data where the is no new pps since
-		if (ser_t-pps_t>1000): 		# check if there was a pps signal since the previous msg (which had no connection)
+		if (data[oset_ser]-data[oset_pps]>1000): 		# check if there was a pps signal since the previous msg (which had no connection)
+			delete = True
+		elif (j>0 and round(data[oset_pps]-ppsPrev)==0):
+			print(ppsPrev, data[oset_pps])
 			delete = True
 	
 	if (delete):
@@ -92,6 +77,7 @@ while (i<len(contentsTxt)-period+1):	 		 	# while loop because for loop does not
 		delete = False
 		print("delete", line,"  ;",i)
 	else:
+		ppsPrev = data[oset_pps]
 		for k in range(period):
 			print(line,"  ;",i,j)
 			contentsTxtCor[j] = line
@@ -100,7 +86,7 @@ while (i<len(contentsTxt)-period+1):	 		 	# while loop because for loop does not
 
 # truncate array to the end of the data		
 contentsTxtCor = contentsTxtCor[:j]
-#contentsTxtCor = contentsTxtCor[:21]
+
 
 
 ppsAvg = 1000
@@ -114,68 +100,95 @@ serCur = 0 							 	# time of serial for previous line
 serPrev = 0 							# time of serial for previous line
 estCur = 0
 estPrev = 0
-ppsCorrection = 0
-for i in range(0, len(contentsTxtCor), period):
-	#print("->i:",i)	
+ppsCorrection = 0.
+
+
+dataRow = [[0]*parts for i in range(len(contentsTxtCor))]
+
+for row in range(len(dataRow)):
+	line = contentsTxtCor[row]
+	commaLoc,commaLoc2 = 0,0
+	for col in range(parts):
+		if (col==parts-1):
+			commaLoc2 = len(line)
+		else:
+			commaLoc2 = commaLoc+line[commaLoc:].index(',')
+		try:	dataRow[row][col] = int(line[commaLoc:commaLoc2])
+		except ValueError:	dataRow[row][col] = float(line[commaLoc:commaLoc2])
+		commaLoc = commaLoc2+1
+		
+dataCol = [[0]*len(dataRow) for i in range(parts)]
+
+pps_dt_dist_ = [np.uint32(np.uint32(dataRow[row+1][oset_pps])-np.uint32(dataRow[row][oset_pps]))
+				+ (dataRow[row+1][oset_pps]-np.uint32(dataRow[row+1][oset_pps]))
+				- (dataRow[row][oset_pps]-np.uint32(dataRow[row][oset_pps])) for row in range(len(dataRow)-1)]
+pps_dt_dist = []
+for row in range(len(pps_dt_dist_)):
+	if (round(pps_dt_dist_[row],-1) == 1000):
+		pps_dt_dist.append(pps_dt_dist_[row])
+pps_dt_dist.sort()
+		
+def GetRandSec():
+	rand_i = np.random.randint(0,len(pps_dt_dist))
+	return pps_dt_dist[rand_i]
+				
+followup = False
+ppsCorCommon = 0
+for i in range(len(dataRow)):
 	
 	ppsPrev = ppsCur
 	serPrev = serCur
 	estPrev = estCur
 	
-	data = [0]*4
-	
-	line = contentsTxtCor[i]
-	commaLoc = 0
-	for commaNum in range(4): 	 	# find time
-		#print("B",oset_PPS+i)
-		if (commaNum == 3):
-			commaLoc2 = len(line)
-		else:
-			commaLoc2 = commaLoc+line[commaLoc:].index(',')
-		data[commaNum] = int(line[commaLoc:commaLoc2])
-		commaLoc = commaLoc2+1
-		
-	ppsCur = int(data[oset_pps])
-	serCur = int(data[oset_ser])
-	estCur = int(data[oset_est])
+	data = dataRow[i]
+	ppsCur = data[oset_pps]
+	serCur = data[oset_ser]
+	estCur = data[oset_est]
 	
 	if (i==0): 							 	# go back to start of loop if i is 0 (need to take diff between successive data)
+		print("__ ~ __")
 		continue
 		
-	pps_dt = int(ppsCur-ppsPrev)
-	ser_dt = int(serCur-serPrev)
-	est_dt = int(estCur-estPrev)
+	pps_dt = ppsCur-ppsPrev
+	ser_dt = serCur-serPrev
+	est_dt = estCur-estPrev
 	
 	ppsser_dt = serCur-ppsCur
 	ppsser_mil = int(round(ppsser_dt/1000))*1000 		 	# get difference rounded to nearest thousand
 	ppsest_dt = estCur-ppsCur
 	ppsest_mil = int(round(ppsest_dt/1000))*1000 	# get difference rounded to nearest thousand
-
-	#print("->",i,ppsCur,serCur,  "dt",pps_dt,ser_dt,ppsser_dt,ppsser_mil)
 	
-	#ppsCur += int(int(1-round(pps_dt,-3)/1000)*ppsAvg)		# correct by however much the pps difference varies from 1000
-	
+	if (followup):
+		print(ppsPrev, ppsCur," ", pps_dt, ppsCorrection," ", pps_dt-ppsCorrection)
+	if (int(round(pps_dt-ppsCorrection,0))==0000):
+		ppsCorrection += ppsCorCommon
+		if (followup):
+			print(pps_dt, ppsCorrection," ", pps_dt-ppsCorrection)
+	followup = False
 	if (int(round(pps_dt-ppsCorrection,-3))!=1000):
-		ppsCorrection = (pps_dt-1000)
-		print("ppsCor",pps_dt,i,"   ",ppsPrev,ppsCur,ppsCorrection)
-#	else:
-#		print("ppsOK ",pps_dt,i,"   ",ppsPrev,ppsCur,ppsCorrection)
+		ppsCorCommon = (pps_dt-1000)
+		ppsCorrection = ppsCorCommon
+		ppsCorrection = pps_dt-GetRandSec()					# if inaccurate, reset second length to 1000
+		followup = True
+	
 	ppsCur -= ppsCorrection
+	if (followup):
+		print("->followup", ppsPrev, ppsCur, pps_dt, ppsCorrection)
 	serCur = ppsCur + ppsser_dt - ppsser_mil
 	estCur = ppsCur + ppsest_dt - ppsest_mil
-	
-	#print(ppsCur,serCur)
+			
+	dataNew = data[:]
 		
-	#print("ggad: ",ggad)
-	#print("dt_pps: ",dt_pps)
-		
-	data[oset_ser] = serCur
-	data[oset_pps] = ppsCur
-	data[oset_est] = estCur
+	dataNew[oset_ser] = serCur
+	dataNew[oset_pps] = ppsCur
+	dataNew[oset_est] = estCur
 	
 	contentsTxtCor[i] = ""
 	for commaNum in range(0,4):
-		contentsTxtCor[i] += str(data[commaNum])+","
+		if (type(data[commaNum])==int):
+			contentsTxtCor[i] += str(int(round(dataNew[commaNum])))+","
+		else:
+			contentsTxtCor[i] += str(round(dataNew[commaNum],3))+","
 	contentsTxtCor[i] = contentsTxtCor[i][:-1]+"\n"
 
 
