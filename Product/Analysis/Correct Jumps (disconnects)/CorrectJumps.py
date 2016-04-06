@@ -15,7 +15,7 @@ Problem: after long PPS freezes/disconnect fixes there is sometimes a shift in P
 this could be caused by avgPPS not being correct at that time
 """
 
-filename = "KL1PRD09Chk"
+filename = "KL1PRD10Chk"
 
 
 
@@ -79,7 +79,7 @@ while (i<len(contentsTxt)-period+1):
 	else:
 		ppsPrev = data[oset_pps]
 		for k in range(period):
-			print(line,"  ;",i,j)
+			#print(line,"  ;",i,j)
 			contentsTxtCor[j] = line
 			j += 1
 			i += 1
@@ -119,18 +119,27 @@ for row in range(len(dataRow)):
 		
 dataCol = [[0]*len(dataRow) for i in range(parts)]
 
-pps_dt_dist_ = [np.uint32(np.uint32(dataRow[row+1][oset_pps])-np.uint32(dataRow[row][oset_pps]))
-				+ (dataRow[row+1][oset_pps]-np.uint32(dataRow[row+1][oset_pps]))
-				- (dataRow[row][oset_pps]-np.uint32(dataRow[row][oset_pps])) for row in range(len(dataRow)-1)]
+pps_dt_dist_ = [dataRow[row+1][oset_pps]-dataRow[row][oset_pps] for row in range(len(dataRow)-1)]
 pps_dt_dist = []
 for row in range(len(pps_dt_dist_)):
 	if (round(pps_dt_dist_[row],-1) == 1000):
 		pps_dt_dist.append(pps_dt_dist_[row])
 pps_dt_dist.sort()
 		
-def GetRandSec():
-	rand_i = np.random.randint(0,len(pps_dt_dist))
-	return pps_dt_dist[rand_i]
+def GetRandSec(iAnchor, iStd = 20):
+	iAnchor = int(round(iAnchor))
+	rand_i = -1
+	rand_sec = 0
+	j = 0
+	while(rand_i<0 or rand_i>=len(pps_dt_dist) or round(rand_sec,-1)!=1000):
+		if (j>10):						# if we have tried and failed too many times with full array
+			rand_i = np.random.randint(0, len(pps_dt_dist))
+			rand_sec = pps_dt_dist[rand_i]
+		else:
+			rand_i = int(round(np.random.normal(iAnchor, iStd)))
+			rand_sec = pps_dt_dist_[rand_i]
+		j += 1
+	return rand_sec
 				
 followup = False
 ppsCorCommon = 0
@@ -162,13 +171,14 @@ for i in range(len(dataRow)):
 		print(ppsPrev, ppsCur," ", pps_dt, ppsCorrection," ", pps_dt-ppsCorrection)
 	if (int(round(pps_dt-ppsCorrection,0))==0000):
 		ppsCorrection += ppsCorCommon
+		print("carry through")
 		if (followup):
 			print(pps_dt, ppsCorrection," ", pps_dt-ppsCorrection)
 	followup = False
 	if (int(round(pps_dt-ppsCorrection,-3))!=1000):
 		ppsCorCommon = (pps_dt-1000)
 		ppsCorrection = ppsCorCommon
-		ppsCorrection = pps_dt-GetRandSec()					# if inaccurate, reset second length to 1000
+		ppsCorrection = pps_dt-GetRandSec(i)				# if inaccurate, reset second length to 1000
 		followup = True
 	
 	ppsCur -= ppsCorrection
