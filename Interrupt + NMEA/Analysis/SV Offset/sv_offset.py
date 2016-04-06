@@ -77,7 +77,7 @@ ax.set_xlabel("Sample")
 ax.set_ylabel("GPS PPS - Serial Offset (ms)")
 ax.set_xlim(0, len(ppsser))
 ax.set_ylim(150, 400)
-#ax.text(0.05, 0.9, "Standard Deviation = " + str(round(np.std(data), 2)) + "ms", transform = ax.transAxes)
+ax.text(0.05, 0.9, "Standard Deviation = " + str(round(np.std(ppsser), 2)) + "ms", transform = ax.transAxes)
 ax.text(0.05, 0.88, "Using GPSMIL37ChckdCor.txt dataset", transform = ax.transAxes)
 
 # Plot
@@ -97,7 +97,7 @@ ax.set_xlabel("Sample")
 ax.set_ylabel("GPS PPS - Serial Offset (ms)")
 ax.set_xlim(0, len(ppsser))
 ax.set_ylim(150, 400)
-#ax.text(0.05, 0.9, "Standard Deviation = " + str(round(np.std(data), 2)) + "ms", transform = ax.transAxes)
+ax.text(0.05, 0.9, "Standard Deviation = " + str(round(np.std(ppsser), 2)) + "ms", transform = ax.transAxes)
 ax.text(0.05, 0.88, "Using GPSMIL37ChckdCor.txt dataset", transform = ax.transAxes)
 ax2.set_ylabel("Number of Connected Satellites", size = 12)
 

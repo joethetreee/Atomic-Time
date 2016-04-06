@@ -41,6 +41,9 @@ while i < len(data) - 1:
 	
 	i += 3
 	
+for j in range(1000, 1005):
+	print(j, ppspps[j])
+	
 fig, ax = plt.subplots(1, 1, figsize = (15, 10))
 ax.bar(range(len(ppspps)), ppspps, align = 'center')
 ax.set_title("Distribution of GPS PPS - PPS Time Deltas")
