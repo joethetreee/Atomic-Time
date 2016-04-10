@@ -34,7 +34,7 @@ oset_ser = 0
 oset_pps = 1
 oset_est = 2
 
-linear = True
+linear = False
 linMin = 1
 linMax = 10
 linStep = 1
@@ -147,6 +147,8 @@ titDat = ["PPS-PPS"     ,"Serial-serial","Kalman-Kalman","PPS-serial","PPS-Kalma
 #savDat = ["a"]
 #titDat = ["sin"]
 
+print("Plotting...")
+
 mplt.rcParams.update({'font.size': 14})
 for i in range(len(pltDat)):
 	
@@ -157,7 +159,7 @@ for i in range(len(pltDat)):
 			
 	print(title, "min", min(data), data.index(min(data)), "max", max(data), data.index(max(data)))
 	
-	fig = plt.figure(figsize=(11,6))
+	fig = plt.figure(figsize=(15, 10))
 	y_formatter = mplt.ticker.ScalarFormatter(useOffset=False)
 	axes = plt.axes()
 		
@@ -198,4 +200,4 @@ for i in range(len(pltDat)):
 	saveFileName = filename+"_"+name+"("+str(start)+"-"+str(end)+")_"+saveFileNameLog
 	plt.savefig("../../Results/"+saveFileName+".png", dpi=400)
 	plt.savefig("../../Results/"+saveFileName+".svg")
-	plt.show()
+plt.show()
