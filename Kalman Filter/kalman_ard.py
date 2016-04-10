@@ -143,33 +143,48 @@ while i < len(data) - 1:
 print("kalResults PPS Compensation stdDev", np.std(kalResultsPPS))
 print("kalResults stdDev", np.std(kalResults))
 
-# Calculate kalman pps - kalman pps time deltas
-ppsDeltas = np.zeros(1100)
-deltas = np.zeros(1100)
+# Calculate kalman pps - kalman pps time histo
+ppsHisto = np.zeros(1100)
+histo = np.zeros(1100)
 for k in range(1, len(kalResultsPPS)):
-	ppsDeltas[kalFilterPPS[k] - kalFilterPPS[k - 1]] += 1
-	deltas[kalFilter[k] - kalFilter[k - 1]] += 1
+	ppsHisto[kalFilterPPS[k] - kalFilterPPS[k - 1]] += 1
+	histo[kalFilter[k] - kalFilter[k - 1]] += 1
 	
 print("\n")
 print("Kalman PPS Time Delta Statistics:")
-total = sum(filter(lambda a: a != 0, deltas))
+total = sum(filter(lambda a: a != 0, histo))
 print("Total non-zero data points =", total)
 total2 = 0
 for i in range(999, 1001 + 1):
-	total2 += deltas[i]
-	print("dt =", i, "count =", deltas[i])
+	total2 += histo[i]
+	print("dt =", i, "count =", histo[i])
 print("{0}% in selected range.".format(round(total2 / total * 100, 3)))
 
 print("\n")
 print("Kalman PPS SV Time Delta Statistics:")
-total = sum(filter(lambda a: a != 0, ppsDeltas))
+total = sum(filter(lambda a: a != 0, ppsHisto))
 print("Total non-zero data points =", total)
 total2 = 0
 for i in range(999, 1001 + 1):
-	total2 += ppsDeltas[i]
-	print("dt =", i, "count =", ppsDeltas[i])
+	total2 += ppsHisto[i]
+	print("dt =", i, "count =", ppsHisto[i])
 print("{0}% in selected range.".format(round(total2 / total * 100, 3)))
+
+
+# Get time histo for std dev calculation
+deltas = []
+for i in range(1, len(kalFilter)):
+	t1 = kalFilter[i - 1]
+	t2 = kalFilter[i]
 	
+	deltas.append(t2 - t1)
+	
+svdeltas = []
+for i in range(1, len(kalFilterPPS)):
+	t1 = kalFilterPPS[i - 1]
+	t2 = kalFilterPPS[i]
+
+	svdeltas.append(t2 - t1)
   
 # Set the colour map
 cmap = cm.gist_rainbow
@@ -179,7 +194,7 @@ bounds = np.linspace(min(numSats), max(numSats), max(numSats) - min(numSats) + 1
 norm = mpl.colors.BoundaryNorm(bounds, cmap.N)
 scalarMap = cm.ScalarMappable(norm = norm, cmap = cmap)
 
-""" Plot the basic kalman filtered PPS deltas """
+""" Plot the basic kalman filtered PPS histo """
 fig, ax = plt.subplots(1, 1, figsize = (15, 10))
 
 # create a second axes for the colorbar
@@ -198,7 +213,6 @@ ax2.set_ylabel("Number of Connected Satellites", size = 12)
 
 # Plot
 ax.scatter(range(len(kalResults)), kalResults, c = numSats, cmap = cmap, norm = norm, linewidth = "0", s = 2)
-plt.show()
 
 """ Plot the PPS distribution modified kalman data """
 fig, ax = plt.subplots(1, 1, figsize = (15, 10))
@@ -219,7 +233,6 @@ ax2.set_ylabel("Number of Connected Satellites", size = 12)
 
 # Plot
 ax.scatter(range(len(kalResultsPPS)), kalResultsPPS, c = numSats, cmap = cmap, norm = norm, linewidth = "0", s = 2)
-plt.show()
 
 """ Plot the PPS - Ser distributions """
 fig, ax = plt.subplots(1, 1, figsize = (15, 10))
@@ -239,31 +252,33 @@ for i in range(len(distroResults)):
 	ax.plot(range(len(distroResults[i])), distroResults[i], color = c)
 	ax.axvline(avgs[i], c = c)
 	ax.text(avgs[i], 400 - i * 8, str(i), color = c)
-	
-plt.show()
 
-""" Plot the kalman PPS - kalmanPPS time deltas distribution """
+
+""" Plot the kalman PPS - kalmanPPS time histo distribution """
 fig, ax = plt.subplots(1, 1, figsize = (15, 10))
-ax.set_xlim(np.nonzero(ppsDeltas)[0][0] - 5, np.nonzero(ppsDeltas)[0][-1] + 15)
+ax.set_xlim(np.nonzero(ppsHisto)[0][0] - 5, np.nonzero(ppsHisto)[0][-1] + 15)
 ax.set_title("Kalman PPS - Kalman PPS Time Delta Distribution")
 ax.set_xlabel("Time Delta (ms)")
 ax.set_ylabel("Frequency")
 ax.text(0.05, 0.88, "Using GPSMIL37ChckdCor.txt dataset", transform = ax.transAxes)
+ax.text(0.05, 0.90, "Base Standard Deviation = {0}ms".format(round(np.std(deltas), 2)), transform = ax.transAxes)
 
-ax.plot(range(len(deltas)), deltas, color = "red", label = "Base Kalman")
+ax.plot(range(len(histo)), histo, color = "red", label = "Base Kalman")
 ax.legend(loc = 0)
 ax.grid()
 
-""" Plot the kalman PPS - kalmanPPS time deltas distribution with GPS compensation comparison"""
+""" Plot the kalman PPS - kalmanPPS time histo distribution with GPS compensation comparison"""
 fig, ax = plt.subplots(1, 1, figsize = (15, 10))
-ax.set_xlim(np.nonzero(ppsDeltas)[0][0] - 5, np.nonzero(ppsDeltas)[0][-1] + 15)
+ax.set_xlim(np.nonzero(ppsHisto)[0][0] - 5, np.nonzero(ppsHisto)[0][-1] + 15)
 ax.set_title("Kalman PPS - Kalman PPS Time Delta Distribution Average")
 ax.set_xlabel("Time Delta (ms)")
 ax.set_ylabel("Frequency")
 ax.text(0.05, 0.88, "Using GPSMIL37ChckdCor.txt dataset", transform = ax.transAxes)
+ax.text(0.05, 0.90, "Base Standard Deviation = {0}ms".format(round(np.std(deltas), 2)), transform = ax.transAxes)
+ax.text(0.05, 0.92, "SV Comp Standard Deviation = {0}ms".format(round(np.std(svdeltas), 2)), transform = ax.transAxes)
 
-ax.plot(range(len(deltas)), deltas, color = "red", label = "Base Kalman")
-ax.plot(range(len(ppsDeltas)), ppsDeltas, color = "blue", label = "SV Compensated Kalman")
+ax.plot(range(len(histo)), histo, color = "red", label = "Base Kalman")
+ax.plot(range(len(ppsHisto)), ppsHisto, color = "blue", label = "SV Compensated Kalman")
 ax.legend(loc = 0)
 ax.grid()
 
