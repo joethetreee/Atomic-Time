@@ -17,6 +17,9 @@ SoftwareSerial gpsSerial(8, 7);
 volatile uint32_t milli = millis();
 volatile uint32_t milliLast = millis();
 volatile uint32_t dt = 0;
+volatile uint32_t ppsMilli = millis();
+volatile uint32_t ppsMilliLast = millis();
+volatile uint32_t ppsDt = 0;
 bool firstLoop = true;
 bool firstSer = true;
 bool outPPSStart = false;
@@ -101,6 +104,9 @@ void setup() {
   pinMode(3, INPUT);
   pinMode(ppsOutPin, OUTPUT);
   attachInterrupt(digitalPinToInterrupt(3), getInputTime, RISING);
+  
+  pinMode(2, INPUT);
+  attachInterrupt(digitalPinToInterrupt(2), getPPSTime, RISING);
 }
 
 
@@ -117,6 +123,8 @@ void loop() {
 
       // Write to SD card
       logfile.print(currentStateEstimateULong500);
+      logfile.print(",");
+      logfile.print(ppsMilliLast);
       logfile.print(",");
       logfile.print(milliLast);
       logfile.print(",");
@@ -220,6 +228,14 @@ void getInputTime() {
   if(dt > 500) {
     milliLast = milli;
     stepKalman = true;
+  }
+}
+
+void getPPSTime() {
+  ppsMilli = millis();
+  ppsDt = ppsMilli - ppsMilliLast;
+  if(ppsDt > 500) {
+    ppsMilliLast = ppsMilli;
   }
 }
 
