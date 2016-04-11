@@ -18,8 +18,10 @@ doesn't matter which other lines are present; information extracted from t<><> r
 import numpy as np
 import matplotlib as mplt
 import matplotlib.pyplot as plt
+mplt.rc('font', **{'family': 'serif', 'serif': ['Computer Modern']})
+mplt.rc('text', usetex=True)
 
-filename = "KL1PRD09ChkCor"	
+filename = "KL1PRD12ChkCor"	
 
 contents = open("../../results/" + filename + ".txt", mode='r')
 contentsTxt = contents.readlines()
@@ -70,8 +72,8 @@ ppsser_dT = [dataCol[oset_ser][i]-dataCol[oset_pps][i] for i in range(len(dataRo
 
 pltDat = [serser_dT  , ppspps_dT  , k1ek1e_dT  , ppsk1e_dT  , ppsser_dT]
 savDat = ["serser_dT", "ppspps_dT", "k1ek1e_dT", "ppsk1e_dT", "ppsser_dT"]
-titDat = ["Consecutive serial", "Consecutive PPS",
-		"Consecutive single Kalman estimate", "PPS to single Kalman estimate", "PPS to serial"]
+titDat = ["consecutive serial", "consecutive PPS",
+		"consecutive real-time Kalman estimate", "PPS to real-time Kalman estimate", "PPS to serial"]
 
 def GenerateDist(histData_, binMin_, binMax_, binWidth_):
 	binNum_ = (binMax_-binMin_)/binWidth_
@@ -89,14 +91,46 @@ def GenerateDist(histData_, binMin_, binMax_, binWidth_):
 		
 	return (binVals2_, binMids_)
 	
-mplt.rcParams.update({'font.size': 14})
+def GetOrder(data_):
+	# find a measure of spread of data
+	# find order of range
+	dataRange = max(data)-min(data)
+	order = 1
+	while(order>dataRange):
+		order/=10
+	while(order<dataRange):
+		order*=10
+	order = order/100
+		
+	return order
+	
+	
+def GetAvgStd(data_, orderBegin):
+	avg = np.average(data_)
+	stdDev = np.std(data_)
+	j=-orderBegin
+	stdDev_ = round(stdDev,j)
+	avg_ = round(avg,j)
+	while(stdDev_==0 and stdDev>0.00001):
+		j+=1
+		stdDev_ = round(stdDev,j)
+		avg_ = round(avg,j)
+	j += 1
+	stdDev_ = round(stdDev,j)
+	avg_ = round(avg,j)
+	if(j<=0):
+		stdDev_ = int(stdDev_)
+		avg_ = int(avg_)
+	return (avg_,stdDev_)
+	
+mplt.rcParams.update({'font.size': 20})
 for i in range(len(pltDat)):
 	
 	data = pltDat[i]
 	name = savDat[i]
 	title = titDat[i]
 
-	fig = plt.figure(figsize=(11,6))
+	fig = plt.figure(figsize=(12,7))
 	
 	# find a measure of spread of data
 	# find order of range
@@ -109,23 +143,19 @@ for i in range(len(pltDat)):
 	order = order/100
 	order_i = int(round(np.log10(order)))
 		
+	order = GetOrder(data)
 	spacing = 1
 	if (order<1): spacing = order/50
-	stdDev = np.std(data)
-	j=0
-	stdDev_ = round(stdDev,j)
-	while(stdDev_==0 and stdDev>0.00001):
-		stdDev_ = round(stdDev,j+1)
-		j+=1
-	if(j==0):	stdDev_ = int(stdDev_)
+	
+	avg_,stdDev_ = GetAvgStd(data, order_i)	
 	
 	(binVals, binMids) = GenerateDist(data, int(min(data)/order-1)*order, int(max(data)/order+1)*order, spacing)
 	plt.plot(binMids, binVals, color = "black")
 	plt.title("Distribution of "+title+" time differences")
 	plt.xlabel("Time difference /ms")
 	plt.ylabel("Probability density")
-	plt.annotate("Average: "+str(round(np.average(data),1))+" ms;  Std dev: "+
+	plt.annotate("Average: "+str(avg_)+" ms;  Std dev: "+
 			str(stdDev_)+" ms", xy=(0.05, 0.95), xycoords='axes fraction')
+	plt.tight_layout()
 	plt.savefig("../../Results/"+filename+"_"+name+"_dist.png", dpi=400)
-	plt.savefig("../../Results/"+filename+"_"+name+"_dist.svg")
 	plt.show()

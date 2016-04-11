@@ -18,8 +18,11 @@ import matplotlib as mplt
 import matplotlib.pyplot as plt
 import math as mth
 from matplotlib import ticker
+import KalmanFilter as klm
+mplt.rc('font', **{'family': 'serif', 'serif': ['Computer Modern']})
+mplt.rc('text', usetex=True)
 
-filename = "KL1PRD09ChkCor"	
+filename = "KL1PRD14ChkCor"	
 
 contents = open("../../results/" + filename + ".txt", mode='r')
 contentsTxt = contents.readlines()
@@ -34,7 +37,7 @@ oset_ser = 0
 oset_pps = 1
 oset_est = 2
 
-linear = False
+linear = True
 linMin = 1
 linMax = 10
 linStep = 1
@@ -97,34 +100,30 @@ allan_x = [int(alMin*(alFac**i)) for i in range(alNum+1)]
 if (linear):
 	allan_x = list(range(linMin, linMax+1, linStep))
 
-ppspps_Allan = allan_x[:]
-serser_Allan = allan_x[:]
-k1ek1e_Allan = allan_x[:]
-ppsser_Allan = allan_x[:]
-ppsk1e_Allan = allan_x[:]
 pps_Allan = allan_x[:]
 ser_Allan = allan_x[:]
+k1e_Allan = allan_x[:]
+#klm_Allan = allan_x[:]
 
-ppspps_dT = GetDifferences(dataCol[oset_pps])
-serser_dT = GetDifferences(dataCol[oset_ser])
-k1ek1e_dT = GetDifferences(dataCol[oset_est])
-ppsser_dT = [dataCol[oset_ser][i]-dataCol[oset_pps][i] for i in range(len(dataCol[0]))]
-ppsk1e_dT = [dataCol[oset_est][i]-dataCol[oset_pps][i] for i in range(len(dataCol[0]))]
+#klm_T = [dataCol[oset_ser][0]]*len(dataCol[oset_ser])
+#klm_U = 1
+#est_dT = 999.983
+#est_U = 0.001
+#meas_U = 40
+#for i in range(len(klm_T)-1):
+#	klm_T[1+i],klm_U = klm.KalFilIter(klm_T[i], est_dT, dataCol[oset_ser][1+i], klm_U, est_U, meas_U)
 
 for i in range(len(allan_x)):
-	ppspps_Allan[i] = (AllanVar(ppspps_dT, allan_x[i])**0.5)
-	serser_Allan[i] = (AllanVar(serser_dT, allan_x[i])**0.5)
-	k1ek1e_Allan[i] = (AllanVar(k1ek1e_dT, allan_x[i])**0.5)
-	ppsser_Allan[i] = (AllanVar(ppsser_dT, allan_x[i])**0.5)
-	ppsk1e_Allan[i] = (AllanVar(ppsk1e_dT, allan_x[i])**0.5)
 	pps_Allan[i] = (AllanVar(dataCol[oset_pps], allan_x[i])**0.5)
 	ser_Allan[i] = (AllanVar(dataCol[oset_ser], allan_x[i])**0.5)
+	k1e_Allan[i] = (AllanVar(dataCol[oset_est], allan_x[i])**0.5)
+	#klm_Allan[i] = (AllanVar(klm_T, allan_x[i])**0.5)
 	
 
 
-pltDat = [ ppspps_Allan , serser_Allan , k1ek1e_Allan , ppsser_Allan , ppsk1e_Allan , pps_Allan , ser_Allan]
-savDat = ["ppspps_Allan","serser_Allan","k1ek1e_Allan","ppsser_Allan","ppsk1e_Allan","pps_Allan","ser_Allan"]
-titDat = ["PPS-PPS"     ,"Serial-serial","Kalman-Kalman","PPS-serial","PPS-Kalman","PPS","Serial"]
+pltDat = [ pps_Allan , ser_Allan , k1e_Allan ]
+savDat = ["pps_Allan","ser_Allan","k1e_Allan"]
+titDat = ["PPS","serial","real-time Kalman estimate"]
 
 #allan_x = [i for i in range(1,int(len(dataCol[0])/4),3)]
 #
@@ -147,9 +146,7 @@ titDat = ["PPS-PPS"     ,"Serial-serial","Kalman-Kalman","PPS-serial","PPS-Kalma
 #savDat = ["a"]
 #titDat = ["sin"]
 
-print("Plotting...")
-
-mplt.rcParams.update({'font.size': 14})
+mplt.rcParams.update({'font.size': 20})
 for i in range(len(pltDat)):
 	
 	data = pltDat[i]
@@ -159,7 +156,7 @@ for i in range(len(pltDat)):
 			
 	print(title, "min", min(data), data.index(min(data)), "max", max(data), data.index(max(data)))
 	
-	fig = plt.figure(figsize=(15, 10))
+	fig = plt.figure(figsize=(12,7))
 	y_formatter = mplt.ticker.ScalarFormatter(useOffset=False)
 	axes = plt.axes()
 		
@@ -193,11 +190,13 @@ for i in range(len(pltDat)):
 		plt.yscale('log')
 		plt.xscale('log')
 		plt.scatter(allan_x,data, color="k", marker='x')
+		ax.xaxis.set_major_formatter(ticker.FormatStrFormatter("%d"))
+		plt.xlim([10*int(min(allan_x)/10),10000*int(max(allan_x)/10000+1)])
 				
+	plt.tight_layout()
 	saveFileNameLog = ""
 	if (linear):	saveFileNameLog = str(linMin)+"-"+str(linMax)
-	else:	"Log"
+	else:	saveFileNameLog = "Log"
 	saveFileName = filename+"_"+name+"("+str(start)+"-"+str(end)+")_"+saveFileNameLog
 	plt.savefig("../../Results/"+saveFileName+".png", dpi=400)
-	plt.savefig("../../Results/"+saveFileName+".svg")
-plt.show()
+	plt.show()

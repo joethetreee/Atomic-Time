@@ -22,7 +22,7 @@ from scipy.stats.stats import pearsonr
 mplt.rc('font', **{'family': 'serif', 'serif': ['Computer Modern']})
 mplt.rc('text', usetex=True)
 
-filename = "KL1PRD10ChkCor"	
+filename = "KL1PRD14ChkCor"	
 
 contents = open("../../results/" + filename + ".txt", mode='r')
 contentsTxt = contents.readlines()
@@ -115,7 +115,7 @@ ppsser_dT = [dataCol[oset_ser][i]-dataCol[oset_pps][i] for i in range(len(dataRo
 
 pltDat = [k1ek1e_dT  , ppsk1e_dT  , ppsser_dT]
 savDat = ["k1ek1e_dT", "ppsk1e_dT", "ppsser_dT"]
-titDat = ["Consecutive single Kalman estimate", "PPS to single Kalman estimate", "PPS to serial"]
+titDat = ["consecutive real-time Kalman estimate", "PPS to real-time Kalman estimate", "PPS to serial"]
 
 colArray = ColArray(len(qTypes))
 colA = [0]*len(ppsser_dT)
@@ -127,6 +127,38 @@ qMax = max(qTypes)
 qMin = min(qTypes)
 for i in range(len(qArr)):
 	qArr[i] = dataCol[oset_snum][i]
+	
+	
+def GetOrder(data_):
+	# find a measure of spread of data
+	# find order of range
+	dataRange = max(data)-min(data)
+	order = 1
+	while(order>dataRange):
+		order/=10
+	while(order<dataRange):
+		order*=10
+	order = order/100
+		
+	return order
+	
+def GetAvgStd(data_, orderBegin):
+	avg = np.average(data_)
+	stdDev = np.std(data_)
+	j=-orderBegin
+	stdDev_ = round(stdDev,j)
+	avg_ = round(avg,j)
+	while(stdDev_==0 and stdDev>0.00001):
+		j+=1
+		stdDev_ = round(stdDev,j)
+		avg_ = round(avg,j)
+	j += 1
+	stdDev_ = round(stdDev,j)
+	avg_ = round(avg,j)
+	if(j<=0):
+		stdDev_ = int(stdDev_)
+		avg_ = int(avg_)
+	return (avg_,stdDev_)
 	
 for i in range(len(pltDat)):
 	data = pltDat[i]
@@ -161,8 +193,8 @@ for i in range(len(pltDat)):
 	cbarPlot = plt.scatter(range(0,len(data),1),data,c=qArr_, cmap=cmap,linewidth='0', s=8 ,
 						vmin = np.min(qTypes)-.5, vmax = np.max(qTypes)+.5)
 	plt.clf()
-	fig = plt.figure(figsize=(11,6))
-	mplt.rcParams.update({'font.size': 14})
+	fig = plt.figure(figsize=(12,7))
+	mplt.rcParams.update({'font.size': 20})
 
 	medianArr = [0]*len(qTypes)
 	avgValx_type = [0]*len(qTypes) 				# store the average value for each "delimiter"
@@ -204,20 +236,21 @@ for i in range(len(pltDat)):
 	ylim = plt.gca().get_ylim()
 	xlim = plt.gca().get_xlim()	
 		
-	plt.title("Dist. of "+title+" difference by satellite number")
+	plt.title("Time differences between "+title+"\nby satellite number")
 	plt.xlabel("Time difference /ms")
 	plt.ylabel("Frequency")
 	
+	labelx_oset = 0.58
 	for j in range(len(qTypes)):
-		plt.annotate('satN '+str(qTypes[j])+' avg '+str(round(avgValx_type[j],1))+' std '+str(round(avgValu_type[j],1))+' ms'
-		, xy=(0.65,0.1+0.8*j/len(qTypes)), xycoords='axes fraction')	
+		plt.annotate('sat no. '+str(qTypes[j])+': avg '+str(int(round(avgValx_type[j],0)))+', std '+str(int(round(avgValu_type[j],0)))+' ms'
+		, xy=(0.58,0.1+0.8*j/len(qTypes)), xycoords='axes fraction')	
 	
 	cbarTicksTemp = range(min(qTypes), max(qTypes)+1)
 	cbar = plt.colorbar(cbarPlot, ticks=cbarTicksTemp)
 	
 	plt.tight_layout()
 	saveFileName = filename+"_"+name+"_SatNum_dist"
-	plt.savefig("../../Results/Useful/"+saveFileName+".pdf")
+	plt.savefig("../../Results/"+saveFileName+".png")
 	
 	plt.show()
 	

@@ -18,8 +18,11 @@ doesn't matter which other lines are present; information extracted from t<><> r
 import numpy as np
 import matplotlib as mplt
 import matplotlib.pyplot as plt
+import KalmanFilter as klm
+mplt.rc('font', **{'family': 'serif', 'serif': ['Computer Modern']})
+mplt.rc('text', usetex=True)
 
-filename = "KL1PRD09ChkCor"	
+filename = "KL1PRD14ChkCor"	
 
 contents = open("../../results/" + filename + ".txt", mode='r')
 contentsTxt = contents.readlines()
@@ -69,30 +72,23 @@ k1ek1e_dT = [dataCol[oset_est][i+1]-dataCol[oset_est][i] for i in range(len(data
 ppsk1e_dT = [dataCol[oset_est][i]-dataCol[oset_pps][i] for i in range(len(dataRow))]
 ppsser_dT = [dataCol[oset_ser][i]-dataCol[oset_pps][i] for i in range(len(dataRow))]
 
-pltDat = [serser_dT  , ppspps_dT  , k1ek1e_dT  , ppsk1e_dT  , ppsser_dT]
+#klm_T = [dataCol[oset_ser][0]]*len(dataCol[oset_ser])
+#klm_U = 1
+#est_dT = 999.983
+#est_U = 0.001
+#meas_U = 40
+#for i in range(len(klm_T)-1):
+#	klm_T[1+i],klm_U = klm.KalFilIter(klm_T[i], est_dT, dataCol[oset_ser][1+i], klm_U, est_U, meas_U)
+#
+#ppsklm_dT = [klm_T[i]-dataCol[oset_pps][i] for i in range(len(klm_T))]
+
+pltDat = [serser_dT  , ppspps_dT  , k1ek1e_dT  , ppsk1e_dT  , ppsser_dT  ]
 savDat = ["serser_dT", "ppspps_dT", "k1ek1e_dT", "ppsk1e_dT", "ppsser_dT"]
 titDat = ["Consecutive serial", "Consecutive PPS",
-		"Consecutive single Kalman estimate", "PPS to single Kalman estimate", "PPS to serial"]
+		"Consecutive real-time Kalman estimate", "PPS to real-time Kalman estimate", "PPS to serial"]
 
-mplt.rcParams.update({'font.size': 14})
-for i in range(len(pltDat)):
 	
-	data = pltDat[i]
-	name = savDat[i]
-	title = titDat[i]
-	
-	print(title, "min", min(data), data.index(min(data)), "max", max(data), data.index(max(data)))
-	
-	fig = plt.figure(figsize=(11,6))
-	y_formatter = mplt.ticker.ScalarFormatter(useOffset=False)
-	axes = plt.axes()
-		
-	plt.scatter(range(0,len(data),1),data, color="k", s=2, linewidth=0)
-	plt.title(title+" time difference")
-	plt.xlabel("Samples")
-	plt.ylabel("Time difference /ms")
-	plt.xlim(0,len(data))
-	
+def GetOrder(data_):
 	# find a measure of spread of data
 	# find order of range
 	dataRange = max(data)-min(data)
@@ -102,17 +98,62 @@ for i in range(len(pltDat)):
 	while(order<dataRange):
 		order*=10
 	order = order/100
+		
+	return order
+	
+	
+def GetAvgStd(data_, orderBegin):
+	avg = np.average(data_)
+	stdDev = np.std(data_)
+	j=-orderBegin
+	stdDev_ = round(stdDev,j)
+	avg_ = round(avg,j)
+	while(stdDev_==0 and stdDev>0.00001):
+		j+=1
+		stdDev_ = round(stdDev,j)
+		avg_ = round(avg,j)
+	j += 1
+	stdDev_ = round(stdDev,j)
+	avg_ = round(avg,j)
+	if(j<=0):
+		stdDev_ = int(stdDev_)
+		avg_ = int(avg_)
+	return (avg_,stdDev_)
+
+
+mplt.rcParams.update({'font.size': 20})
+for i in range(len(pltDat)):
+	
+	data = pltDat[i]
+	name = savDat[i]
+	title = titDat[i]
+	
+	print(title, "min", min(data), data.index(min(data)), "max", max(data), data.index(max(data)))
+	
+	fig = plt.figure(figsize=(12,7))
+	y_formatter = mplt.ticker.ScalarFormatter(useOffset=False)
+	axes = plt.axes()
+		
+	plt.scatter(range(0,len(data),1),data, color="k", s=2, linewidth=0)
+	plt.title(title+" time difference")
+	plt.xlabel("Samples")
+	plt.ylabel("Time difference /ms")
+	plt.xlim(0,len(data))
+	
+	order = GetOrder(data)
 	order_i = int(round(np.log10(order)))
+	
+	avg_,stdDev_ = GetAvgStd(data, order_i)
 	
 	plt.ylim( round((min(data)/order-1)*order,-order_i), round((max(data)/order+1)*order,-order_i) )
 	axes = plt.axes()
 	axes.yaxis.set_major_formatter(y_formatter)
 	
-	plt.annotate("Average: "+str(round(np.average(data),2))+" ms;  Std dev: "+
-			str(round(np.std(data),2))+" ms", xy=(0.05, 0.95), xycoords='axes fraction')
+	plt.annotate("Average: "+str(avg_)+" ms;  Std dev: "+
+			str(stdDev_)+" ms", xy=(0.05, 0.95), xycoords='axes fraction')
 			
 	saveFileName = filename+"_"+name+"("+str(start)+"-"+str(end)+")"
+	plt.tight_layout()
 	plt.savefig("../../Results/"+saveFileName+".png", dpi=400)
-	plt.savefig("../../Results/"+filename+"_"+name+"("+str(start)+"-"+str(end)+").svg")
 	plt.show()
 	plt.clf()

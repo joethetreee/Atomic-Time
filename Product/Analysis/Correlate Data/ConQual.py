@@ -19,8 +19,10 @@ import numpy as np
 import matplotlib as mplt
 import matplotlib.pyplot as plt
 from scipy.stats.stats import pearsonr
+mplt.rc('font', **{'family': 'serif', 'serif': ['Computer Modern']})
+mplt.rc('text', usetex=True)
 
-filename = "KL1PRD10ChkCor"	
+filename = "KL1PRD14ChkCor"	
 
 contents = open("../../results/" + filename + ".txt", mode='r')
 contentsTxt = contents.readlines()
@@ -83,10 +85,10 @@ k1ek1e_dT = [dataCol[oset_est][i+1]-dataCol[oset_est][i] for i in range(len(data
 ppsk1e_dT = [dataCol[oset_est][i]-dataCol[oset_pps][i] for i in range(len(dataRow))]
 ppsser_dT = [dataCol[oset_ser][i]-dataCol[oset_pps][i] for i in range(len(dataRow))]
 
-pltDat = [serser_dT  , ppspps_dT  , k1ek1e_dT  , ppsk1e_dT  , ppsser_dT]
-savDat = ["serser_dT", "ppspps_dT", "k1ek1e_dT", "ppsk1e_dT", "ppsser_dT"]
-titDat = ["Consecutive serial", "Consecutive PPS",
-		"Consecutive single Kalman estimate", "PPS to single Kalman estimate", "PPS to serial"]
+pltDat = [serser_dT  , k1ek1e_dT  , ppsk1e_dT  , ppsser_dT]
+savDat = ["serser_dT", "k1ek1e_dT", "ppsk1e_dT", "ppsser_dT"]
+titDat = ["Consecutive serial",
+		"Consecutive real-time Kalman estimate", "PPS to real-time Kalman estimate", "PPS to serial"]
 
 
 colArray = ColArray(len(qTypes))
@@ -102,9 +104,39 @@ for i in range(len(qTypes)):
 	qTypesN[i] = (qTypes[i]-qMin)/(qMax-qMin)
 for i in range(len(qArr)):
 	qArr[i] = dataCol[oset_snum][i]
+		
+def GetOrder(data_):
+	# find a measure of spread of data
+	# find order of range
+	dataRange = max(data)-min(data)
+	order = 1
+	while(order>dataRange):
+		order/=10
+	while(order<dataRange):
+		order*=10
+	order = order/100
+		
+	return order
 	
+def GetAvgStd(data_, orderBegin):
+	avg = np.average(data_)
+	stdDev = np.std(data_)
+	j=-orderBegin
+	stdDev_ = round(stdDev,j)
+	avg_ = round(avg,j)
+	while(stdDev_==0 and stdDev>0.00001):
+		j+=1
+		stdDev_ = round(stdDev,j)
+		avg_ = round(avg,j)
+	j += 1
+	stdDev_ = round(stdDev,j)
+	avg_ = round(avg,j)
+	if(j<=0):
+		stdDev_ = int(stdDev_)
+		avg_ = int(avg_)
+	return (avg_,stdDev_)
 
-mplt.rcParams.update({'font.size': 14})
+mplt.rcParams.update({'font.size': 20})
 for i in range(len(pltDat)):
 	
 	data = pltDat[i]
@@ -113,7 +145,7 @@ for i in range(len(pltDat)):
 	qArr_ = qArr
 	while(len(qArr_)>len(data)):	qArr_ = qArr_[1:]
 
-	fig = plt.figure(figsize=(11,6))
+	fig = plt.figure(figsize=(12,7))
 	
 	
 	cmap = plt.get_cmap('jet', np.max(qTypes)-np.min(qTypes)+1)
@@ -121,23 +153,17 @@ for i in range(len(pltDat)):
 						vmin = np.min(qTypes)-.5, vmax = np.max(qTypes)+.5)
 	plt.xlim(0,len(data))
 	
-	# find a measure of spread of data
-	# find order of range
-	dataRange = max(data)-min(data)
-	order = 1
-	while(order<dataRange):
-		order*=10
-	order/=10
-	if (order>1):	order/=10
-		
-	plt.ylim(int(min(data)/order-1)*order, int(max(data)/order+1)*order)
+	order = GetOrder(data)
+	order_i = int(round(np.log10(order)))	
+	plt.ylim( round((min(data)/order-1)*order,-order_i), round((max(data)/order+1)*order,-order_i) )
 	
 	cbarTicksTemp = range(min(qTypes), max(qTypes)+1)
 	cbar = plt.colorbar(cbarPlot, ticks=cbarTicksTemp)
 	
-	plt.title(title + " difference with satellite number")
-	plt.ylabel("difference in time / ms")
-	plt.xlabel("Samples (thousands)")
+	plt.title(title + " difference by satellite number")
+	plt.ylabel("Time difference /ms")
+	plt.xlabel("Samples")
+	plt.tight_layout()
 	
 	# correlation on full data and sat num
 	# if we are working on serser_dT (diff between same type), arrays have diff length
@@ -155,7 +181,6 @@ for i in range(len(pltDat)):
 
 	saveFileName = filename+"_"+name+"("+str(start)+"-"+str(end)+")_SatNum"
 	plt.savefig("../../Results/"+saveFileName+".png",dpi=400)
-	plt.savefig("../../Results/"+saveFileName+".svg")
 	
 	plt.show()
 	plt.clf()

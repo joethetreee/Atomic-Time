@@ -15,7 +15,7 @@ Problem: after long PPS freezes/disconnect fixes there is sometimes a shift in P
 this could be caused by avgPPS not being correct at that time
 """
 
-filename = "KL1PRD10Chk"
+filename = "KL1PRD12Chk"
 
 
 
@@ -66,8 +66,10 @@ while (i<len(contentsTxt)-period+1):
 		commaLoc = commaLoc2+1
 			
 	if (not delete): 		# check if the conctn is new -- check & remove new conctn data where the is no new pps since
-		if (data[oset_ser]-data[oset_pps]>1000): 		# check if there was a pps signal since the previous msg (which had no connection)
+		# check if there was a pps signal since the previous msg (which had no connection), or for partial soverflows
+		if (abs(data[oset_ser]-data[oset_pps])>1000 or abs(data[oset_ser]-data[oset_est])>1000):
 			delete = True
+			print("too big", data)
 		elif (j>0 and round(data[oset_pps]-ppsPrev)==0):
 			print(ppsPrev, data[oset_pps])
 			delete = True
@@ -134,10 +136,12 @@ def GetRandSec(iAnchor, iStd = 20):
 	while(rand_i<0 or rand_i>=len(pps_dt_dist) or round(rand_sec,-1)!=1000):
 		if (j>10):						# if we have tried and failed too many times with full array
 			rand_i = np.random.randint(0, len(pps_dt_dist))
-			rand_sec = pps_dt_dist[rand_i]
+			if (rand_i>=0 and rand_i<len(pps_dt_dist)):
+				rand_sec = pps_dt_dist[rand_i]
 		else:
 			rand_i = int(round(np.random.normal(iAnchor, iStd)))
-			rand_sec = pps_dt_dist_[rand_i]
+			if (rand_i>=0 and rand_i<len(pps_dt_dist)):
+				rand_sec = pps_dt_dist_[rand_i]
 		j += 1
 	return rand_sec
 				
@@ -184,7 +188,7 @@ for i in range(len(dataRow)):
 	ppsCur -= ppsCorrection
 	if (followup):
 		print("->followup", ppsPrev, ppsCur, pps_dt, ppsCorrection)
-	serCur = ppsCur + ppsser_dt - ppsser_mil
+	serCur = ppsCur + ppsser_dt - ppsest_mil
 	estCur = ppsCur + ppsest_dt - ppsest_mil
 			
 	dataNew = data[:]

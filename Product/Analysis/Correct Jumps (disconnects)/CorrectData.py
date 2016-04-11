@@ -3,7 +3,7 @@
 removes failed data entries
 """
 
-filename = "KL1PRD09"
+filename = "KL1PRD14"
 linStart = [""] 		 	 	# start of each line
 
 contents = open("../../Results/"+filename+".txt", mode='r')
