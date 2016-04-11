@@ -6,7 +6,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-file = "KL2PPS54"
+file = "KL2PPS58"
 
 f = open("results/{0}".format(file + ".txt"), "r")
 dts = []
@@ -26,6 +26,7 @@ data = "\n".join(dts)
 # Produce histogram of successive time deltas
 i = 1
 histo = np.zeros(len(dataIn))
+deltas = []
 while i < len(dataIn):
 	dataTemp = dataIn[i].split(",")
 	time2 = int(dataTemp[0])
@@ -34,10 +35,12 @@ while i < len(dataIn):
 	
 	try: # The try-except catches a negative index. This occurs when the ULong wraps around to zero.
 		histo[time2 - time1] += 1
+		deltas.append(time2 - time1)
 	except IndexError:
 		pass
 		
 	i += 1
+
 
 # Write to file
 # dt
@@ -55,12 +58,12 @@ outFile.close()
 f.close()
 
 # Plot
-plt.plot(range(len(dts)), dts)
+plt.scatter(range(len(deltas)), deltas, color = "black", marker = "x")
 plt.show()
 
 # Delta histogram
 fig, ax = plt.subplots(1, 1, figsize = (15, 10))
-ax.plot(range(len(histo)), histo)
+ax.scatter(range(len(histo)), histo, color = "black", marker = "x")
 ax.set_title("Distribution of Successive Arduino Kalman PPS Time Deltas")
 ax.set_xlabel("KALPPS - KALPPS Time Delta (ms)")
 ax.set_ylabel("Frequency")
@@ -68,4 +71,6 @@ ax.set_xlim(975, 1025)
 ax.set_ylim(0, max(histo) * 1.1)
 ax.grid()
 ax.text(0.05, 0.88, "Using {0}.txt dataset".format(file), transform = ax.transAxes)
+ax.text(0.05, 0.9, "Standard Deviation = " + ('%04.2f' % round(np.std(deltas), 2)) + "ms", transform = ax.transAxes)
+ax.text(0.05, 0.92, "Average = " + str(round(np.average(deltas), 2)) + "ms", transform = ax.transAxes)
 plt.show()

@@ -18,7 +18,6 @@ import matplotlib as mplt
 import matplotlib.pyplot as plt
 import math as mth
 from matplotlib import ticker
-import KalmanFilter as klm
 mplt.rc('font', **{'family': 'serif', 'serif': ['Computer Modern']})
 mplt.rc('text', usetex=True)
 
@@ -37,7 +36,7 @@ oset_ser = 0
 oset_pps = 1
 oset_est = 2
 
-linear = True
+linear = False
 linMin = 1
 linMax = 10
 linStep = 1
@@ -103,27 +102,20 @@ if (linear):
 pps_Allan = allan_x[:]
 ser_Allan = allan_x[:]
 k1e_Allan = allan_x[:]
-#klm_Allan = allan_x[:]
 
-#klm_T = [dataCol[oset_ser][0]]*len(dataCol[oset_ser])
-#klm_U = 1
-#est_dT = 999.983
-#est_U = 0.001
-#meas_U = 40
-#for i in range(len(klm_T)-1):
-#	klm_T[1+i],klm_U = klm.KalFilIter(klm_T[i], est_dT, dataCol[oset_ser][1+i], klm_U, est_U, meas_U)
+ppsk1e_dT = [dataCol[oset_est][i]-dataCol[oset_pps][i] for i in range(len(dataCol[0]))]
 
 for i in range(len(allan_x)):
 	pps_Allan[i] = (AllanVar(dataCol[oset_pps], allan_x[i])**0.5)
 	ser_Allan[i] = (AllanVar(dataCol[oset_ser], allan_x[i])**0.5)
 	k1e_Allan[i] = (AllanVar(dataCol[oset_est], allan_x[i])**0.5)
-	#klm_Allan[i] = (AllanVar(klm_T, allan_x[i])**0.5)
 	
 
 
 pltDat = [ pps_Allan , ser_Allan , k1e_Allan ]
 savDat = ["pps_Allan","ser_Allan","k1e_Allan"]
 titDat = ["PPS","serial","real-time Kalman estimate"]
+titDat = ["GPS PPS - Serial Time Deltas","GPS PPS - Kalman GPS Time Deltas","GPS PPS Time Deltas","Serial Time Deltas"]
 
 #allan_x = [i for i in range(1,int(len(dataCol[0])/4),3)]
 #
@@ -160,10 +152,9 @@ for i in range(len(pltDat)):
 	y_formatter = mplt.ticker.ScalarFormatter(useOffset=False)
 	axes = plt.axes()
 		
-	plt.title("Allan deviation of "+title)
 	plt.xlabel("Order")
-	plt.ylabel("Allan deviation / fractional")
 	ax = plt.gca()
+	plt.text(0.05, 0.88, "Using {0}.txt dataset".format(filename), transform = ax.transAxes)
 	#ax.get_xaxis().get_major_formatter().set_scientific(False)
 			
 		
@@ -190,6 +181,7 @@ for i in range(len(pltDat)):
 		plt.yscale('log')
 		plt.xscale('log')
 		plt.scatter(allan_x,data, color="k", marker='x')
+		plt.scatter(allan_x, data, color="k", marker='x')
 		ax.xaxis.set_major_formatter(ticker.FormatStrFormatter("%d"))
 		plt.xlim([10*int(min(allan_x)/10),10000*int(max(allan_x)/10000+1)])
 				
