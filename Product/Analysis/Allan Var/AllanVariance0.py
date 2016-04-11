@@ -19,7 +19,7 @@ import matplotlib.pyplot as plt
 import math as mth
 from matplotlib import ticker
 
-filename = "KL1PRD09ChkCor"	
+filename = "KL1PRD12ChkCor"	
 
 contents = open("../../results/" + filename + ".txt", mode='r')
 contentsTxt = contents.readlines()
@@ -122,9 +122,9 @@ for i in range(len(allan_x)):
 	
 
 
-pltDat = [ ppspps_Allan , serser_Allan , k1ek1e_Allan , ppsser_Allan , ppsk1e_Allan , pps_Allan , ser_Allan]
-savDat = ["ppspps_Allan","serser_Allan","k1ek1e_Allan","ppsser_Allan","ppsk1e_Allan","pps_Allan","ser_Allan"]
-titDat = ["PPS-PPS"     ,"Serial-serial","Kalman-Kalman","PPS-serial","PPS-Kalman","PPS","Serial"]
+pltDat = [ ppsser_Allan , ppsk1e_Allan , pps_Allan , ser_Allan]
+savDat = ["ppsser_Allan","ppsk1e_Allan","pps_Allan","ser_Allan"]
+titDat = ["GPS PPS - Serial Time Deltas","GPS PPS - Kalman GPS Time Deltas","GPS PPS Time Deltas","Serial Time Deltas"]
 
 #allan_x = [i for i in range(1,int(len(dataCol[0])/4),3)]
 #
@@ -163,12 +163,15 @@ for i in range(len(pltDat)):
 	y_formatter = mplt.ticker.ScalarFormatter(useOffset=False)
 	axes = plt.axes()
 		
-	plt.title("Allan deviation of "+title)
+	plt.title("Allan Deviation of "+title)
 	plt.xlabel("Order")
-	plt.ylabel("Allan deviation / fractional")
+	plt.ylabel("Allan Deviation / fractional")
+	
 	ax = plt.gca()
+	plt.text(0.05, 0.88, "Using {0}.txt dataset".format(filename), transform = ax.transAxes)
 	#ax.get_xaxis().get_major_formatter().set_scientific(False)
 			
+	print(title, "one second Allan Deviation", data[0])
 		
 	if (linear):
 		# flind a measure of spread of data
@@ -192,7 +195,7 @@ for i in range(len(pltDat)):
 	else:
 		plt.yscale('log')
 		plt.xscale('log')
-		plt.scatter(allan_x,data, color="k", marker='x')
+		plt.scatter(allan_x, data, color="k", marker='x')
 				
 	saveFileNameLog = ""
 	if (linear):	saveFileNameLog = str(linMin)+"-"+str(linMax)
