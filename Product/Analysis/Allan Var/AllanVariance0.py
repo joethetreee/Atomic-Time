@@ -21,7 +21,7 @@ from matplotlib import ticker
 mplt.rc('font', **{'family': 'serif', 'serif': ['Computer Modern']})
 mplt.rc('text', usetex=True)
 
-filename = "KL1PRD14ChkCor"	
+filename = "KL1PRD10ChkCor"	
 
 contents = open("../../results/" + filename + ".txt", mode='r')
 contentsTxt = contents.readlines()
@@ -114,8 +114,7 @@ for i in range(len(allan_x)):
 
 pltDat = [ pps_Allan , ser_Allan , k1e_Allan ]
 savDat = ["pps_Allan","ser_Allan","k1e_Allan"]
-titDat = ["PPS","serial","real-time Kalman estimate"]
-titDat = ["GPS PPS - Serial Time Deltas","GPS PPS - Kalman GPS Time Deltas","GPS PPS Time Deltas","Serial Time Deltas"]
+titDat = ["GPS PPS","serial","real-time Kalman estimate"]
 
 #allan_x = [i for i in range(1,int(len(dataCol[0])/4),3)]
 #
@@ -152,7 +151,7 @@ for i in range(len(pltDat)):
 	y_formatter = mplt.ticker.ScalarFormatter(useOffset=False)
 	axes = plt.axes()
 		
-	plt.xlabel("Order")
+	plt.xlabel("Averaging samples")
 	ax = plt.gca()
 	plt.text(0.05, 0.88, "Using {0}.txt dataset".format(filename), transform = ax.transAxes)
 	#ax.get_xaxis().get_major_formatter().set_scientific(False)
