@@ -18,8 +18,10 @@ import matplotlib as mplt
 import matplotlib.pyplot as plt
 import math as mth
 from matplotlib import ticker
+mplt.rc('font', **{'family': 'serif', 'serif': ['Computer Modern']})
+mplt.rc('text', usetex=True)
 
-filename = "KL1PRD12ChkCor"	
+filename = "KL1PRD14ChkCor"	
 
 contents = open("../../results/" + filename + ".txt", mode='r')
 contentsTxt = contents.readlines()
@@ -97,33 +99,22 @@ allan_x = [int(alMin*(alFac**i)) for i in range(alNum+1)]
 if (linear):
 	allan_x = list(range(linMin, linMax+1, linStep))
 
-ppspps_Allan = allan_x[:]
-serser_Allan = allan_x[:]
-k1ek1e_Allan = allan_x[:]
-ppsser_Allan = allan_x[:]
-ppsk1e_Allan = allan_x[:]
 pps_Allan = allan_x[:]
 ser_Allan = allan_x[:]
+k1e_Allan = allan_x[:]
 
-ppspps_dT = GetDifferences(dataCol[oset_pps])
-serser_dT = GetDifferences(dataCol[oset_ser])
-k1ek1e_dT = GetDifferences(dataCol[oset_est])
-ppsser_dT = [dataCol[oset_ser][i]-dataCol[oset_pps][i] for i in range(len(dataCol[0]))]
 ppsk1e_dT = [dataCol[oset_est][i]-dataCol[oset_pps][i] for i in range(len(dataCol[0]))]
 
 for i in range(len(allan_x)):
-	ppspps_Allan[i] = (AllanVar(ppspps_dT, allan_x[i])**0.5)
-	serser_Allan[i] = (AllanVar(serser_dT, allan_x[i])**0.5)
-	k1ek1e_Allan[i] = (AllanVar(k1ek1e_dT, allan_x[i])**0.5)
-	ppsser_Allan[i] = (AllanVar(ppsser_dT, allan_x[i])**0.5)
-	ppsk1e_Allan[i] = (AllanVar(ppsk1e_dT, allan_x[i])**0.5)
 	pps_Allan[i] = (AllanVar(dataCol[oset_pps], allan_x[i])**0.5)
 	ser_Allan[i] = (AllanVar(dataCol[oset_ser], allan_x[i])**0.5)
+	k1e_Allan[i] = (AllanVar(dataCol[oset_est], allan_x[i])**0.5)
 	
 
 
-pltDat = [ ppsser_Allan , ppsk1e_Allan , pps_Allan , ser_Allan]
-savDat = ["ppsser_Allan","ppsk1e_Allan","pps_Allan","ser_Allan"]
+pltDat = [ pps_Allan , ser_Allan , k1e_Allan ]
+savDat = ["pps_Allan","ser_Allan","k1e_Allan"]
+titDat = ["PPS","serial","real-time Kalman estimate"]
 titDat = ["GPS PPS - Serial Time Deltas","GPS PPS - Kalman GPS Time Deltas","GPS PPS Time Deltas","Serial Time Deltas"]
 
 #allan_x = [i for i in range(1,int(len(dataCol[0])/4),3)]
@@ -147,9 +138,7 @@ titDat = ["GPS PPS - Serial Time Deltas","GPS PPS - Kalman GPS Time Deltas","GPS
 #savDat = ["a"]
 #titDat = ["sin"]
 
-print("Plotting...")
-
-mplt.rcParams.update({'font.size': 14})
+mplt.rcParams.update({'font.size': 20})
 for i in range(len(pltDat)):
 	
 	data = pltDat[i]
@@ -159,19 +148,15 @@ for i in range(len(pltDat)):
 			
 	print(title, "min", min(data), data.index(min(data)), "max", max(data), data.index(max(data)))
 	
-	fig = plt.figure(figsize=(15, 10))
+	fig = plt.figure(figsize=(12,7))
 	y_formatter = mplt.ticker.ScalarFormatter(useOffset=False)
 	axes = plt.axes()
 		
-	plt.title("Allan Deviation of "+title)
 	plt.xlabel("Order")
-	plt.ylabel("Allan Deviation / fractional")
-	
 	ax = plt.gca()
 	plt.text(0.05, 0.88, "Using {0}.txt dataset".format(filename), transform = ax.transAxes)
 	#ax.get_xaxis().get_major_formatter().set_scientific(False)
 			
-	print(title, "one second Allan Deviation", data[0])
 		
 	if (linear):
 		# flind a measure of spread of data
@@ -195,12 +180,15 @@ for i in range(len(pltDat)):
 	else:
 		plt.yscale('log')
 		plt.xscale('log')
+		plt.scatter(allan_x,data, color="k", marker='x')
 		plt.scatter(allan_x, data, color="k", marker='x')
+		ax.xaxis.set_major_formatter(ticker.FormatStrFormatter("%d"))
+		plt.xlim([10*int(min(allan_x)/10),10000*int(max(allan_x)/10000+1)])
 				
+	plt.tight_layout()
 	saveFileNameLog = ""
 	if (linear):	saveFileNameLog = str(linMin)+"-"+str(linMax)
-	else:	"Log"
+	else:	saveFileNameLog = "Log"
 	saveFileName = filename+"_"+name+"("+str(start)+"-"+str(end)+")_"+saveFileNameLog
 	plt.savefig("../../Results/"+saveFileName+".png", dpi=400)
-	plt.savefig("../../Results/"+saveFileName+".svg")
-plt.show()
+	plt.show()

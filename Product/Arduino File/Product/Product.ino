@@ -81,8 +81,8 @@ uint32_t sec_xf[PRED_NUM];                         // Kalman prediction of next 
 float secRem_xf = 0;                               // carries the remainder of prediction in microseconds (float just for compatability)
 float sec_uf[PRED_NUM];                            // uncertainty in Kalman prediction in microseconds (float just for compatability)
 uint32_t sec_um = 50000;                           // uncertainty of timing from GPS receiver
-uint32_t sec_dxp = 999985;                         // prediction of second length
-uint32_t sec_up = 1000;                            // uncertainty in prediction
+uint32_t sec_dxp = 999983;                         // prediction of second length
+uint32_t sec_up = 1;                               // uncertainty in prediction
 
 GPSInfo gpsInfo;                                        // class used for interpreting GPS NMEA data
 TimerTarget pulseTimer(millisecond, pulseLen);          // timer for outputting pulses
@@ -349,9 +349,9 @@ void RecordSerial()
           UpdateSatNum(gpsInfo.GetSatNum());
 
           TimeEnc theTime = EncodeTime(timeGPSStream_act);
-          uint32_t osCur = GetSatOffset(satNum)*1000;
-          uint32_t osPrev = GetSatOffset(satNumPrev)*1000;
-          uint32_t osUncert = GetSatUncert(satNum)*1000;
+          uint32_t osCur = uint32_t(GetSatOffset(satNum))*1000;
+          uint32_t osPrev = uint32_t(GetSatOffset(satNumPrev))*1000;
+          uint32_t osUncert = uint32_t(GetSatUncert(satNum))*1000;
 
           if (!initialFilter)
           {

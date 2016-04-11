@@ -10,7 +10,7 @@ import statsmodels.tsa.stattools as ts
 import KalmanFilter as klm
 import matplotlib.pyplot as plt
 
-filename = "KL1PRD09ChkCor"	
+filename = "KL1PRD10ChkCor"	
 
 contents = open("../../results/" + filename + ".txt", mode='r')
 contentsTxt = contents.readlines()
@@ -27,6 +27,9 @@ oset_est = 2
 
 start = 0
 end = "end"
+
+average = False 					# whether to average the data (means we can test for long-term effects quicker)
+averageNum = 20	 				# how many consecutive values to average
 
 # put data into arrays
 for row in range(len(dataRow)):
@@ -62,16 +65,15 @@ ppsser_dT = [dataCol[oset_ser][i]-dataCol[oset_pps][i] for i in range(len(dataRo
 
 klm_T = [dataCol[oset_ser][0]]*len(dataCol[oset_ser])
 klm_U = 1
-est_dT = 999.985
+est_dT = 999.983
 est_U = 0.001
 meas_U = 40
 for i in range(len(klm_T)-1):
 	klm_T[1+i],klm_U = klm.KalFilIter(klm_T[i], est_dT, dataCol[oset_ser][1+i], klm_U, est_U, meas_U)
 
 ppsklm_dT = [klm_T[i]-dataCol[oset_pps][i] for i in range(len(klm_T))]
-ppsklm_dT = ppsklm_dT[1000:]
 	
-plt.scatter(range(len(ppsklm_dT)),ppsklm_dT, linewidth=0, color='k', s=2)
+print(len(ppsklm_dT), 12*(len(ppsklm_dT)/100)**(1/4))
 
 pltDat = [serser_dT  , ppspps_dT  , k1ek1e_dT  , ppsk1e_dT  , ppsser_dT, ppsklm_dT]
 savDat = ["serser_dT", "ppspps_dT", "k1ek1e_dT", "ppsk1e_dT", "ppsser_dT", "ppsklm_dT"]
@@ -95,8 +97,28 @@ titDat = ["Consecutive serial", "Consecutive PPS",
 
 for i in range(len(pltDat)):
 	
-	data = pltDat[i]
+	data_ = pltDat[i]
+	if (average):
+		data = []
+		num = int(len(data_)/averageNum)
+		for j in range(num):
+			tot = 0
+			for k in range(averageNum):
+				tot += data_[j*averageNum + k]
+			tot /= averageNum
+			data.append(tot)
+	else:
+		data = data_
 	name = savDat[i]
 	title = titDat[i]
 	
 	print(title, ts.adfuller(data))
+	plt.scatter(range(len(data)),data, linewidth=0, color='k', s=2)
+	plt.title(title)
+	plt.show()
+	
+	freq = [j/len(data) for j in range(len(data))]
+	data_f = np.fft.fft(data)
+	
+	plt.scatter(freq, np.log(data_f), linewidth=0, color='k', s=2)
+	plt.show()
