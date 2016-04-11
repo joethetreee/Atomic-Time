@@ -21,7 +21,7 @@ from matplotlib import ticker
 mplt.rc('font', **{'family': 'serif', 'serif': ['Computer Modern']})
 mplt.rc('text', usetex=True)
 
-filename = "KL1PRD10ChkCor"	
+filename = "KL1PRD14ChkCor"	
 
 contents = open("../../results/" + filename + ".txt", mode='r')
 contentsTxt = contents.readlines()
@@ -151,7 +151,9 @@ for i in range(len(pltDat)):
 	y_formatter = mplt.ticker.ScalarFormatter(useOffset=False)
 	axes = plt.axes()
 		
+	plt.title("Allan deviation of "+title)
 	plt.xlabel("Averaging samples")
+	plt.ylabel("Allan deviation /fractional")
 	ax = plt.gca()
 	plt.text(0.05, 0.88, "Using {0}.txt dataset".format(filename), transform = ax.transAxes)
 	#ax.get_xaxis().get_major_formatter().set_scientific(False)
