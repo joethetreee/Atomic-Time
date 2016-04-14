@@ -22,7 +22,7 @@ from scipy.stats.stats import pearsonr
 mplt.rc('font', **{'family': 'serif', 'serif': ['Computer Modern']})
 mplt.rc('text', usetex=True)
 
-filename = "KL1PRD14ChkCor"	
+filename = "KL1PRD12ChkCor"	
 
 contents = open("../../results/" + filename + ".txt", mode='r')
 contentsTxt = contents.readlines()
@@ -115,7 +115,7 @@ ppsser_dT = [dataCol[oset_ser][i]-dataCol[oset_pps][i] for i in range(len(dataRo
 
 pltDat = [k1ek1e_dT  , ppsk1e_dT  , ppsser_dT]
 savDat = ["k1ek1e_dT", "ppsk1e_dT", "ppsser_dT"]
-titDat = ["consecutive real-time Kalman estimate", "PPS to real-time Kalman estimate", "PPS to serial"]
+titDat = ["consecutive real-time Kalman estimate", "GPS PPS to real-time Kalman estimate", "GPS PPS to serial"]
 
 colArray = ColArray(len(qTypes))
 colA = [0]*len(ppsser_dT)
@@ -236,7 +236,7 @@ for i in range(len(pltDat)):
 	ylim = plt.gca().get_ylim()
 	xlim = plt.gca().get_xlim()	
 		
-	plt.title("Time differences between "+title+"\nby satellite number")
+	plt.title("Time difference from "+title+"\nby satellite number")
 	plt.xlabel("Time difference /ms")
 	plt.ylabel("Frequency")
 	

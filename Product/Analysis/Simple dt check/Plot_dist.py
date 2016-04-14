@@ -21,7 +21,7 @@ import matplotlib.pyplot as plt
 mplt.rc('font', **{'family': 'serif', 'serif': ['Computer Modern']})
 mplt.rc('text', usetex=True)
 
-filename = "KL1PRD12ChkCor"	
+filename = "KL1PRD14ChkCor"	
 
 contents = open("../../results/" + filename + ".txt", mode='r')
 contentsTxt = contents.readlines()
@@ -72,8 +72,8 @@ ppsser_dT = [dataCol[oset_ser][i]-dataCol[oset_pps][i] for i in range(len(dataRo
 
 pltDat = [serser_dT  , ppspps_dT  , k1ek1e_dT  , ppsk1e_dT  , ppsser_dT]
 savDat = ["serser_dT", "ppspps_dT", "k1ek1e_dT", "ppsk1e_dT", "ppsser_dT"]
-titDat = ["consecutive serial", "consecutive PPS",
-		"consecutive real-time Kalman estimate", "PPS to real-time Kalman estimate", "PPS to serial"]
+titDat = ["consecutive serial", "consecutive GPS PPS",
+		"consecutive real-time Kalman estimate", "GPS PPS to real-time Kalman estimate", "GPS PPS to serial"]
 
 def GenerateDist(histData_, binMin_, binMax_, binWidth_):
 	binNum_ = (binMax_-binMin_)/binWidth_

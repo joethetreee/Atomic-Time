@@ -22,7 +22,7 @@ import KalmanFilter as klm
 mplt.rc('font', **{'family': 'serif', 'serif': ['Computer Modern']})
 mplt.rc('text', usetex=True)
 
-filename = "KL1PRD14ChkCor"	
+filename = "KL1PRD10ChkCor"	
 
 contents = open("../../results/" + filename + ".txt", mode='r')
 contentsTxt = contents.readlines()
@@ -84,8 +84,8 @@ ppsser_dT = [dataCol[oset_ser][i]-dataCol[oset_pps][i] for i in range(len(dataRo
 
 pltDat = [serser_dT  , ppspps_dT  , k1ek1e_dT  , ppsk1e_dT  , ppsser_dT  ]
 savDat = ["serser_dT", "ppspps_dT", "k1ek1e_dT", "ppsk1e_dT", "ppsser_dT"]
-titDat = ["Consecutive serial", "Consecutive PPS",
-		"Consecutive real-time Kalman estimate", "PPS to real-time Kalman estimate", "PPS to serial"]
+titDat = ["Consecutive serial", "Consecutive GPS PPS",
+		"Consecutive real-time Kalman estimate", "GPS PPS to real-time Kalman estimate", "GPS PPS to serial"]
 
 	
 def GetOrder(data_):
